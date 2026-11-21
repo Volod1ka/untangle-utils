@@ -741,7 +741,9 @@ struct AboutSettings: View {
                 aboutContent
             }
 
-            UpdatesView()
+            if AppInfo.usesUpstreamServices {
+                UpdatesView()
+            }
         }
         .formStyle(.grouped)
     }

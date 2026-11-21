@@ -2224,7 +2224,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     private func presentUpdateIntros() {
         if showWhatsNewIfNeeded() { return }
         if showUpdateHighlightsIfNeeded() { return }
-        if !AppInfo.isBeta {
+        if !AppInfo.isBeta, AppInfo.usesUpstreamServices {
             if showSupportUpdateIntroIfNeeded() { return }
             if showUpdateShowcaseIntroIfNeeded() { return }
         }

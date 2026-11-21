@@ -129,7 +129,7 @@ struct RecorderEditorView: View {
             .fixedSize()
             .layoutPriority(1)
 
-            if sharingEnabled {
+            if AppInfo.usesUpstreamServices, sharingEnabled {
                 shareMenu
                     .layoutPriority(1)
             }
