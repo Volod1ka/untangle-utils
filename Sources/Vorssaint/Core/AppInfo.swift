@@ -5,10 +5,18 @@ import Foundation
 
 /// Static identity of the app, shared by UI, notifications and tooling.
 enum AppInfo {
-    static let name = "Vorssaint"
-    static let copyright = "© 2026 Vorssaint"
-    static let websiteURL = URL(string: "https://vorssaint.com")!
-    static let repositoryURL = URL(string: "https://github.com/vorssaint/vorssaint-utils")!
+    static let name = "UnTangle"
+    /// UnTangle is an unofficial fork of Vorssaint (GPL-3.0-or-later). The
+    /// original copyright stays; the fork claims no endorsement (TRADEMARKS.md).
+    static let copyright = "© 2026 Vorssaint · UnTangle is an unofficial fork, not affiliated with Vorssaint"
+    /// Off in this fork: the update feed, feedback inbox, donation page and
+    /// release showcase all belong to the original project, so their surfaces
+    /// stay hidden and nothing is sent to its servers. Only the test runner
+    /// turns it on, so the original project's code paths stay covered.
+    static var usesUpstreamServices = false
+    static let websiteURL = URL(string: "https://github.com/Volod1ka/untangle-utils")!
+    static let repositoryURL = URL(string: "https://github.com/Volod1ka/untangle-utils")!
+    static let upstreamRepositoryURL = URL(string: "https://github.com/vorssaint/vorssaint-utils")!
     static let coffeeURL = URL(string: "https://buymeacoffee.com/vorssaint")!
     static let discordURL = URL(string: "https://discord.gg/M6BwWH4BJp")!
     static let socialURL = URL(string: "https://x.com/vorssaint")!

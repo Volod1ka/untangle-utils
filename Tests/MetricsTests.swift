@@ -8,6 +8,9 @@ import Foundation
 @main
 struct MetricsTests {
     static func main() {
+        // UnTangle hides the original project's services; the suite still
+        // exercises that code exactly as upstream ships it.
+        AppInfo.usesUpstreamServices = true
         let suite = TestSuite()
         let groups: [(String, () -> Void)] = [
             ("harness", {

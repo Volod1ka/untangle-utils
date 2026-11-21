@@ -1932,7 +1932,8 @@ enum Defaults {
         DefaultsKey.recorderGIFSize: RecorderSupport.GIFSize.medium.rawValue,
         DefaultsKey.recorderGIFFrameRate: 12,
         DefaultsKey.recorderEditorPresets: Data(),
-        DefaultsKey.recorderSharingEnabled: true,
+        // Temporary links upload to the original project's server; off in UnTangle.
+        DefaultsKey.recorderSharingEnabled: AppInfo.usesUpstreamServices,
         DefaultsKey.panelUtilityScreenRecorder: true,
         DefaultsKey.panelUtilityPortManager: true,
         DefaultsKey.screenshotShowCaptureMenuOnShortcut: true,
@@ -2002,7 +2003,7 @@ enum Defaults {
         DefaultsKey.screenshotUploadDuration: ScreenshotShareDuration.oneHour.rawValue,
         DefaultsKey.screenshotPreviewEnabled: true,
         DefaultsKey.screenshotPreviewDuration: ScreenshotSupport.defaultConfirmationPreviewDuration,
-        DefaultsKey.screenshotSharingEnabled: true,
+        DefaultsKey.screenshotSharingEnabled: AppInfo.usesUpstreamServices,
         DefaultsKey.panelUtilityScreenshot: true,
         DefaultsKey.windowLayoutShortcutsEnabled: false,
         DefaultsKey.windowDirectionalEnabled: false,
