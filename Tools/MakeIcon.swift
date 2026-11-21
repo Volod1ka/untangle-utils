@@ -114,14 +114,12 @@ func renderAppIcon(px: Int) -> Data? {
 
 // MARK: - Menu bar glyph (template)
 
-// The mark is ~1.97:1, so fitting it into a fixed box made the width the
-// limiting side and left the height unused, rendering it far shorter than the
-// menu bar icons around it. Size from the height and let the width follow.
-let menuBarGlyphHeight: CGFloat = 12.5
-// Centered geometrically the mark reads high, since the thin ring tails carry
-// the bounding box below the planet body. Drop it onto the same visual floor
-// as its neighbours.
-let menuBarGlyphDrop: CGFloat = 1
+// UnTangle's mark is about 1:1, so it can use the height the system's own
+// menu bar symbols use (~16 pt) and still leave the 26 pt canvas width spare.
+// Size from the height and let the width follow.
+let menuBarGlyphHeight: CGFloat = 16.5
+// The magnifier's bounding box is balanced top to bottom, so it sits centred.
+let menuBarGlyphDrop: CGFloat = 0
 // Taller than the mark needs: the same canvas holds the compact Keep Awake
 // symbols. Keep in sync with BlackHoleGlyph.pointSize in
 // Sources/Vorssaint/App/StatusItemController.swift; `--selftest` enforces it.
