@@ -108,7 +108,15 @@ struct CommandBarAppShortcutsView: View {
             }
             .tableStyle(.inset)
             .overlay {
-                if apps.isEmpty {
+                if apps.isEmpty, !service.appsLoading, SearchNoResultsRow.isActive(query) {
+                    // below the table's column headers
+                    VStack {
+                        SearchNoResultsRow(query: query) { query = "" }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 34)
+                } else if apps.isEmpty {
                     VStack(spacing: 10) {
                         if service.appsLoading {
                             ProgressView().controlSize(.small)

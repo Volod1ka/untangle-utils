@@ -126,7 +126,16 @@ struct PanelPortManagerView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
+        if SearchNoResultsRow.isActive(service.query) {
+            SearchNoResultsRow(query: service.query, compact: true) { service.query = "" }
+        } else {
+            portsEmptyState
+        }
+    }
+
+    private var portsEmptyState: some View {
         VStack(spacing: 4) {
             Image(systemName: "network.slash")
                 .font(.system(size: 16))

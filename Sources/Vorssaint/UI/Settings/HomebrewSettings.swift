@@ -277,10 +277,8 @@ struct HomebrewSettings: View {
                     }
                 }
             }
-        } else if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            packageSection(l10n.s.homebrewSearchResults, count: 0) {
-                packageMessage(l10n.s.homebrewSearchEmpty)
-            }
+        } else if SearchNoResultsRow.isActive(query) {
+            SearchNoResultsRow(query: query) { query = "" }
         }
     }
 

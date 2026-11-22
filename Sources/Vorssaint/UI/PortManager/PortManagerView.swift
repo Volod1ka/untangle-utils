@@ -75,13 +75,23 @@ struct PortManagerView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "network.slash").font(.system(size: 25)).foregroundStyle(.tertiary)
-            Text(strings.empty).font(.callout).foregroundStyle(.secondary)
-            Text(strings.emptyHint).font(.caption).foregroundStyle(.tertiary)
+        if SearchNoResultsRow.isActive(service.query) {
+            VStack {
+                SearchNoResultsRow(query: service.query) { service.query = "" }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+            VStack(spacing: 8) {
+                Image(systemName: "network.slash").font(.system(size: 25)).foregroundStyle(.tertiary)
+                Text(strings.empty).font(.callout).foregroundStyle(.secondary)
+                Text(strings.emptyHint).font(.caption).foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var loadingState: some View {

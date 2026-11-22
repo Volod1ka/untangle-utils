@@ -161,13 +161,23 @@ struct KillProcessView: View {
         }
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        VStack {
-            Spacer()
-            Text(strings.emptyStateTitle).foregroundStyle(.secondary)
-            Spacer()
+        if SearchNoResultsRow.isActive(service.query) {
+            VStack {
+                SearchNoResultsRow(query: service.query) { service.query = "" }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+            VStack {
+                Spacer()
+                Text(strings.emptyStateTitle).foregroundStyle(.secondary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var loadingState: some View {

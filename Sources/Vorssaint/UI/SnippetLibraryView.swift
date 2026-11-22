@@ -64,13 +64,9 @@ struct SnippetLibraryView: View {
         if !library.hasLibraryContent {
             emptyState
         } else if library.rows.isEmpty {
-            VStack {
-                Text(text.libraryNoResults)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 28)
+            SearchNoResultsRow(query: library.query) { library.query = "" }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
         } else {
             list
         }

@@ -36,6 +36,10 @@ enum FeatureHubLayoutTests {
             Text("Dynamic Island").frame(height: 900).id(FeatureGroup.dynamicIsland)
         }
         var presetsCard: some View { Text("Presets").frame(height: 180) }
+        // The layout under test is the full catalog, so the search stays empty.
+        let isSearching = false
+        var searchField: some View { Text("Search").frame(height: 30) }
+        var searchResults: some View { Text("Results") }
         func groupCard(_ group: FeatureGroup) -> some View {
             SettingsCard {
                 Text(group.rawValue)

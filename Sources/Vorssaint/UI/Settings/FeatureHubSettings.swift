@@ -33,6 +33,10 @@ struct FeatureHubSettings: View {
     @State private var neverUsed: [AppFeature] = []
     /// The batch just uninstalled from that card, kept for its Undo.
     @State private var recentlyUninstalled: [AppFeature] = []
+    /// Filters the catalog by feature name and description.
+    @State private var query = ""
+    /// A group picked from the empty search, scrolled to once the catalog is back.
+    @State private var browseTarget: FeatureGroup?
 
     /// Below this, the offer would be more to read than it saves.
     private static let neverUsedMinimum = 3
@@ -50,6 +54,15 @@ struct FeatureHubSettings: View {
                 }
                 .onChange(of: router.requestID) { _, _ in revealPendingFeatureTarget(using: proxy) }
                 .onChange(of: features.revision) { _, _ in refreshNeverUsed() }
+                .onChange(of: browseTarget) { _, group in
+                    guard let group else { return }
+                    DispatchQueue.main.async {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                            proxy.scrollTo(group, anchor: .top)
+                        }
+                        browseTarget = nil
+                    }
+                }
         }
     }
 
@@ -80,19 +93,26 @@ struct FeatureHubSettings: View {
                     }
                     if tab == .features {
                         VStack(alignment: .leading, spacing: 20) {
+                            searchField
                             summaryCard
-                            neverUsedCard
+                            if !isSearching {
+                                neverUsedCard
+                            }
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background { FeatureHubScrollAnchor() }
-                if tab == .features {
+                if tab == .features, isSearching {
+                    searchResults
+                } else if tab == .features {
                     dynamicIslandCard
                     presetsCard
                     ForEach(FeatureGroup.allCases.filter { $0 != .dynamicIsland }, id: \.self) { group in
                         groupCard(group)
                     }
+                }
+                if tab == .features {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(hub.footerNote)
                         Text(hub.energyHelp)
@@ -141,6 +161,7 @@ struct FeatureHubSettings: View {
         router.consumeFeatureTarget(id: request.id)
         revealID = request.id
         if tab == .permissions { tab = .features }
+        query = ""
         if request.feature.group == .dynamicIsland {
             if request.feature != .notch { islandExtensionsExpanded = true }
         } else {
@@ -340,6 +361,140 @@ struct FeatureHubSettings: View {
         case .windows: return hub.presetWindowsDesc
         case .battery: return hub.presetBatteryDesc
         }
+    }
+
+    // MARK: Search
+
+    /// Lowercased, accent-free words of the query; every one has to appear.
+    private var searchTokens: [String] {
+        Self.normalized(query).split(whereSeparator: \.isWhitespace).map(String.init)
+    }
+
+    private var isSearching: Bool { !searchTokens.isEmpty }
+
+    private static func normalized(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+    }
+
+    private func matches(_ feature: AppFeature) -> Bool {
+        let haystack = Self.normalized(feature.hubTitle(l10n.s, hub: hub) + " " + feature.hubDescription(hub))
+        return searchTokens.allSatisfy(haystack.contains)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(l10n.s.actionSearch, text: $query)
+                .textFieldStyle(.plain)
+                .onExitCommand { query = "" }
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel(l10n.s.actionClear)
+                .help(l10n.s.actionClear)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.primary.opacity(0.06),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    /// Matching rows grouped as in the catalog, every group open, the island first.
+    private var searchResults: some View {
+        let groups = [FeatureGroup.dynamicIsland] + FeatureGroup.allCases.filter { $0 != .dynamicIsland }
+        let found = groups.map { group in
+            (group, AppFeature.features(in: group).filter(matches))
+        }.filter { !$0.1.isEmpty }
+        return Group {
+            if found.isEmpty {
+                noResultsCard(groups: groups)
+            } else {
+                ForEach(found, id: \.0) { group, rows in
+                    let members = AppFeature.features(in: group)
+                    SettingsCard {
+                        groupHeader(group, installed: members.filter(\.isAvailable).count,
+                                    total: members.count)
+                        VStack(spacing: 0) {
+                            ForEach(rows, id: \.self) { feature in
+                                FeatureHubRow(feature: feature, hub: hub,
+                                              isHighlighted: highlightedFeature == feature)
+                                    .id(feature)
+                                if feature != rows.last {
+                                    Divider().padding(.leading, 8)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Nothing matched: say so on one quiet line, offer to clear, and turn the
+    /// dead end into navigation with every group of the catalog.
+    private func noResultsCard(groups: [FeatureGroup]) -> some View {
+        let shown = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return SettingsCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass.circle")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    Text("\(l10n.s.homebrewSearchEmpty) · “\(shown)”")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 12)
+                    Button(l10n.s.actionClear) { query = "" }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                        .fontWeight(.medium)
+                }
+                Divider().opacity(0.6)
+                FeatureHubChipFlow(spacing: 6) {
+                    ForEach(groups, id: \.self) { group in
+                        Button {
+                            browse(group)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: group.symbolName)
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text(groupTitle(group))
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .fixedSize()
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.accentColor.opacity(0.14), in: Capsule())
+                            .foregroundStyle(Color.accentColor)
+                            .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(groupTitle(group))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Leaves the search for the full catalog, with `group` open and in view.
+    private func browse(_ group: FeatureGroup) {
+        query = ""
+        if group == .dynamicIsland {
+            islandExtensionsExpanded = true
+        } else {
+            expandedGroups.insert(group)
+        }
+        browseTarget = group
     }
 
     /// The island stays near the top, with its additions in a group the user
@@ -597,6 +752,39 @@ private extension FeatureGroup {
 
 /// The installed share as the system's own bar, the one picture of "how
 /// much of this is on" that needs no reading.
+/// Lays chips out left to right, wrapping onto as many lines as they need.
+private struct FeatureHubChipFlow: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(subviews, width: proposal.width ?? .infinity).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (view, point) in zip(subviews, arrange(subviews, width: bounds.width).points) {
+            view.place(at: CGPoint(x: bounds.minX + point.x, y: bounds.minY + point.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> (size: CGSize, points: [CGPoint]) {
+        var points: [CGPoint] = []
+        var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += lineHeight + spacing
+                lineHeight = 0
+            }
+            points.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+            widest = max(widest, x - spacing)
+        }
+        return (CGSize(width: widest, height: y + lineHeight), points)
+    }
+}
+
 private struct InstalledShareBar: View {
     let installed: Int
     let total: Int

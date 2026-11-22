@@ -105,6 +105,13 @@ struct AppPickerView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: compact ? 150 : 360)
+        } else if apps.isEmpty, !self.apps.isEmpty, SearchNoResultsRow.isActive(query) {
+            VStack {
+                SearchNoResultsRow(query: query, compact: compact) { query = "" }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: compact ? 150 : 360, alignment: .top)
         } else if apps.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "app.dashed")
