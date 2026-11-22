@@ -36,6 +36,9 @@ struct InstantInputSwitchStrings {
     let indicatorSection: String
     let indicatorToggle: String
     let indicatorCaption: String
+    /// UnTangle's own badge when a text field takes the focus.
+    let focusBadgeToggle: String
+    let focusBadgeCaption: String
     let manageButton: String
 
     func triggerLabel(_ trigger: InstantInputSwitchTrigger) -> String {
@@ -128,6 +131,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Language indicator",
         indicatorToggle: "Show the macOS language indicator next to the cursor",
         indicatorCaption: "macOS shows the input source next to the text cursor after every switch. Turning it off can make switching feel quicker. This is a macOS setting: it takes effect after you log out and back in, and stays as set even without UnTangle.",
+        focusBadgeToggle: "Show the language when a text field is focused",
+        focusBadgeCaption: "Each time you click into a text field or move to one with Tab, UnTangle shows the current input source next to the cursor, so the language is in sight before you type. It works with the macOS indicator on or off. In browsers and apps built on web technologies, UnTangle turns on their accessibility support so they report their fields, which costs them a little more energy.",
         manageButton: "Set up…"
     )
 
@@ -163,6 +168,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Indicador de idioma",
         indicatorToggle: "Mostrar o indicador de idioma do macOS junto ao cursor",
         indicatorCaption: "O macOS mostra a fonte de entrada junto ao cursor de texto após cada troca. Desativá-lo pode deixar a troca mais ágil. É um ajuste do macOS: vale depois de encerrar a sessão e entrar de novo, e continua assim mesmo sem o UnTangle.",
+        focusBadgeToggle: "Mostrar o idioma ao entrar num campo de texto",
+        focusBadgeCaption: "Sempre que você clica num campo de texto ou chega a ele com Tab, o UnTangle mostra a fonte de entrada atual junto ao cursor, para ver o idioma antes de digitar. Funciona com o indicador do macOS ativado ou não. Em navegadores e apps feitos com tecnologias web, o UnTangle ativa o suporte de acessibilidade deles para que informem seus campos, o que gasta um pouco mais de energia.",
         manageButton: "Configurar…"
     )
 
@@ -198,6 +205,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Dil göstergesi",
         indicatorToggle: "macOS dil göstergesini imlecin yanında göster",
         indicatorCaption: "macOS her değişiklikten sonra giriş kaynağını metin imlecinin yanında gösterir. Kapatmak geçişi daha hızlı hissettirebilir. Bu bir macOS ayarıdır: oturumu kapatıp yeniden açtıktan sonra geçerli olur ve UnTangle olmadan da öyle kalır.",
+        focusBadgeToggle: "Metin alanına geçince dili göster",
+        focusBadgeCaption: "Bir metin alanına her tıkladığınızda ya da Sekme ile geçtiğinizde UnTangle geçerli giriş kaynağını imlecin yanında gösterir; böylece yazmadan önce dili görürsünüz. macOS göstergesi açık da olsa kapalı da olsa çalışır. Tarayıcılarda ve web teknolojileriyle yapılmış uygulamalarda UnTangle, alanlarını bildirmeleri için erişilebilirlik desteklerini açar; bu biraz daha fazla enerji harcatır.",
         manageButton: "Ayarla…"
     )
 
@@ -233,6 +242,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Индикатор языка",
         indicatorToggle: "Показывать индикатор языка macOS у курсора",
         indicatorCaption: "После каждого переключения macOS показывает источник ввода рядом с текстовым курсором. Если его выключить, переключение может ощущаться быстрее. Это настройка macOS: она вступает в силу после выхода из системы и повторного входа и сохраняется даже без UnTangle.",
+        focusBadgeToggle: "Показывать язык при переходе в текстовое поле",
+        focusBadgeCaption: "Каждый раз, когда вы щёлкаете в текстовое поле или переходите в него клавишей Tab, UnTangle показывает текущий источник ввода рядом с курсором, чтобы язык был виден до начала набора. Работает независимо от индикатора macOS. В браузерах и программах на веб-технологиях UnTangle включает их поддержку универсального доступа, чтобы они сообщали о своих полях; это немного увеличивает их расход энергии.",
         manageButton: "Настроить…"
     )
 
@@ -268,6 +279,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Indicador de idioma",
         indicatorToggle: "Mostrar el indicador de idioma de macOS junto al cursor",
         indicatorCaption: "macOS muestra la fuente de entrada junto al cursor de texto tras cada cambio. Desactivarlo puede hacer que el cambio se sienta más rápido. Es un ajuste de macOS: se aplica después de cerrar sesión y volver a entrar, y se mantiene aunque no uses UnTangle.",
+        focusBadgeToggle: "Mostrar el idioma al entrar en un campo de texto",
+        focusBadgeCaption: "Cada vez que haces clic en un campo de texto o llegas a él con Tab, UnTangle muestra la fuente de entrada actual junto al cursor, para que veas el idioma antes de escribir. Funciona con el indicador de macOS activado o no. En navegadores y apps hechas con tecnologías web, UnTangle activa su compatibilidad con accesibilidad para que informen de sus campos, lo que consume algo más de energía.",
         manageButton: "Configurar…"
     )
 
@@ -303,6 +316,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Indikátor jazyka",
         indicatorToggle: "Zobrazovať indikátor jazyka macOS pri kurzore",
         indicatorCaption: "macOS po každom prepnutí zobrazí zdroj vstupu pri textovom kurzore. Ak ho vypnete, prepínanie môže pôsobiť rýchlejšie. Ide o nastavenie macOS: prejaví sa po odhlásení a opätovnom prihlásení a zostane tak aj bez UnTangle.",
+        focusBadgeToggle: "Zobraziť jazyk pri prechode do textového poľa",
+        focusBadgeCaption: "Vždy, keď kliknete do textového poľa alebo doň prejdete klávesom Tab, UnTangle zobrazí aktuálny zdroj vstupu pri kurzore, aby bol jazyk vidieť ešte pred písaním. Funguje so zapnutým aj vypnutým indikátorom macOS. V prehliadačoch a aplikáciách postavených na webových technológiách UnTangle zapne ich podporu prístupnosti, aby ohlasovali svoje polia, čo spotrebuje o niečo viac energie.",
         manageButton: "Nastaviť…"
     )
 
@@ -338,6 +353,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Sprachanzeige",
         indicatorToggle: "macOS-Sprachanzeige neben dem Cursor zeigen",
         indicatorCaption: "macOS zeigt nach jedem Wechsel die Eingabequelle neben dem Textcursor. Ist sie aus, kann sich der Wechsel schneller anfühlen. Dies ist eine macOS-Einstellung: Sie wirkt nach dem Ab- und erneuten Anmelden und bleibt auch ohne UnTangle bestehen.",
+        focusBadgeToggle: "Sprache beim Wechsel in ein Textfeld zeigen",
+        focusBadgeCaption: "Bei jedem Klick in ein Textfeld oder Wechsel dorthin mit Tab zeigt UnTangle die aktuelle Eingabequelle neben dem Cursor, sodass die Sprache schon vor dem Tippen zu sehen ist. Das funktioniert mit und ohne die macOS-Sprachanzeige. In Browsern und Apps auf Basis von Webtechnologien schaltet UnTangle deren Bedienungshilfen-Unterstützung ein, damit sie ihre Felder melden; das kostet sie etwas mehr Energie.",
         manageButton: "Einrichten…"
     )
 
@@ -373,6 +390,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Indicateur de langue",
         indicatorToggle: "Afficher l’indicateur de langue de macOS près du curseur",
         indicatorCaption: "macOS affiche la source d’entrée près du curseur de texte après chaque changement. Le désactiver peut rendre le changement plus vif. C’est un réglage de macOS\u{00A0}: il prend effet après une déconnexion puis une reconnexion, et reste ainsi même sans UnTangle.",
+        focusBadgeToggle: "Afficher la langue en entrant dans un champ de texte",
+        focusBadgeCaption: "À chaque clic dans un champ de texte ou passage vers l’un d’eux avec Tab, UnTangle affiche la source d’entrée actuelle près du curseur, pour voir la langue avant de taper. Cela fonctionne avec ou sans l’indicateur de macOS. Dans les navigateurs et les apps conçues avec des technologies web, UnTangle active leur prise en charge de l’accessibilité pour qu’elles signalent leurs champs, ce qui consomme un peu plus d’énergie.",
         manageButton: "Configurer…"
     )
 
@@ -408,6 +427,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Indicatore della lingua",
         indicatorToggle: "Mostra l’indicatore della lingua di macOS vicino al cursore",
         indicatorCaption: "macOS mostra la sorgente di input vicino al cursore di testo dopo ogni cambio. Disattivarlo può rendere il cambio più rapido. È un’impostazione di macOS: ha effetto dopo aver chiuso e riaperto la sessione e resta così anche senza UnTangle.",
+        focusBadgeToggle: "Mostra la lingua quando entri in un campo di testo",
+        focusBadgeCaption: "Ogni volta che fai clic in un campo di testo o ci arrivi con Tab, UnTangle mostra la sorgente di input attuale vicino al cursore, così vedi la lingua prima di scrivere. Funziona con l’indicatore di macOS attivo o no. Nei browser e nelle app realizzate con tecnologie web, UnTangle attiva il loro supporto all’accessibilità perché segnalino i propri campi, il che consuma un po’ più di energia.",
         manageButton: "Configura…"
     )
 
@@ -443,6 +464,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "言語インジケータ",
         indicatorToggle: "カーソルの横にmacOSの言語インジケータを表示",
         indicatorCaption: "macOSは切り替えるたびにテキストカーソルの横に入力ソースを表示します。オフにすると切り替えが速く感じられることがあります。これはmacOSの設定です。ログアウトして再ログインすると反映され、UnTangleがなくてもそのまま残ります。",
+        focusBadgeToggle: "テキストフィールドに入ったときに言語を表示",
+        focusBadgeCaption: "テキストフィールドをクリックしたりTabキーで移動したりするたびに、UnTangleが現在の入力ソースをカーソルの横に表示するので、入力する前に言語を確認できます。macOSのインジケータのオン・オフに関係なく動作します。ブラウザやWeb技術で作られたアプリでは、フィールドを通知させるためにUnTangleがアクセシビリティのサポートをオンにします。そのぶん消費エネルギーが少し増えます。",
         manageButton: "設定…"
     )
 
@@ -478,6 +501,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "언어 표시기",
         indicatorToggle: "커서 옆에 macOS 언어 표시기 보기",
         indicatorCaption: "macOS는 전환할 때마다 텍스트 커서 옆에 입력 소스를 표시합니다. 끄면 전환이 더 빠르게 느껴질 수 있습니다. 이는 macOS 설정으로, 로그아웃 후 다시 로그인하면 적용되며 UnTangle이 없어도 그대로 유지됩니다.",
+        focusBadgeToggle: "텍스트 필드에 들어가면 언어 보기",
+        focusBadgeCaption: "텍스트 필드를 클릭하거나 Tab 키로 이동할 때마다 UnTangle이 현재 입력 소스를 커서 옆에 표시하므로 입력하기 전에 언어를 확인할 수 있습니다. macOS 표시기를 켜든 끄든 작동합니다. 브라우저와 웹 기술로 만든 앱에서는 필드를 알리도록 UnTangle이 손쉬운 사용 지원을 켜며, 이로 인해 에너지를 조금 더 사용합니다.",
         manageButton: "설정…"
     )
 
@@ -513,6 +538,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "Індикатор мови",
         indicatorToggle: "Показувати індикатор мови macOS біля курсора",
         indicatorCaption: "Після кожного перемикання macOS показує джерело вводу біля текстового курсора. Якщо його вимкнути, перемикання може відчуватися швидшим. Це налаштування macOS: воно діє після виходу із системи й повторного входу та лишається таким навіть без UnTangle.",
+        focusBadgeToggle: "Показувати мову під час переходу в текстове поле",
+        focusBadgeCaption: "Щоразу, коли ви клацаєте в текстове поле або переходите в нього клавішею Tab, UnTangle показує поточне джерело вводу біля курсора, щоб мову було видно ще до набору. Працює незалежно від індикатора macOS. У браузерах і програмах на вебтехнологіях UnTangle вмикає їхню підтримку універсального доступу, щоб вони повідомляли про свої поля; це трохи збільшує їхні витрати енергії.",
         manageButton: "Налаштувати…"
     )
 
@@ -548,6 +575,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "语言指示器",
         indicatorToggle: "在光标旁显示 macOS 语言指示器",
         indicatorCaption: "每次切换后，macOS 都会在文本光标旁显示输入法。关闭后切换可能感觉更快。这是 macOS 设置：注销并重新登录后生效，即使没有 UnTangle 也会保持。",
+        focusBadgeToggle: "进入文本框时显示语言",
+        focusBadgeCaption: "每次点按进入文本框或用 Tab 键移到文本框时，UnTangle 都会在光标旁显示当前输入法，让你在输入前就能看到语言。无论 macOS 指示器是否打开都能使用。在浏览器和基于网页技术的应用中，UnTangle 会打开它们的辅助功能支持，让它们报告文本框，这会让它们多耗一些电。",
         manageButton: "设置…"
     )
 
@@ -583,6 +612,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "語言指示器",
         indicatorToggle: "在游標旁顯示 macOS 語言指示器",
         indicatorCaption: "每次切換後，macOS 都會在文字游標旁顯示輸入法。關閉後切換可能感覺更快。這是 macOS 設定：登出並重新登入後生效，即使沒有 UnTangle 也會保持。",
+        focusBadgeToggle: "進入文字欄位時顯示語言",
+        focusBadgeCaption: "每次點按進入文字欄位或用 Tab 鍵移到文字欄位時，UnTangle 都會在游標旁顯示目前的輸入法，讓你在輸入前就能看到語言。無論 macOS 指示器是否開啟都能使用。在瀏覽器和以網頁技術製作的 App 中，UnTangle 會開啟它們的輔助使用支援，讓它們回報文字欄位，這會讓它們多耗一些電。",
         manageButton: "設定…"
     )
 
@@ -618,6 +649,8 @@ extension InstantInputSwitchStrings {
         indicatorSection: "語言指示器",
         indicatorToggle: "喺游標旁邊顯示 macOS 語言指示器",
         indicatorCaption: "每次切換後，macOS 都會喺文字游標旁邊顯示輸入法。關咗之後切換可能會覺得快啲。呢個係 macOS 設定：登出再登入後先生效，就算冇 UnTangle 都會保持。",
+        focusBadgeToggle: "入到文字欄位時顯示語言",
+        focusBadgeCaption: "每次撳入文字欄位或者用 Tab 鍵移去文字欄位時，UnTangle 都會喺游標旁邊顯示而家嘅輸入法，等你打字之前就睇到係咩語言。無論 macOS 指示器開定關都用得。喺瀏覽器同用網頁技術整嘅 App 入面，UnTangle 會開咗佢哋嘅輔助使用支援，等佢哋回報文字欄位，咁會令佢哋多耗少少電。",
         manageButton: "設定…"
     )
 }

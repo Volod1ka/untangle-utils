@@ -113,6 +113,7 @@ final class CleaningModeManager: ObservableObject {
         MouseClickDebounceService.shared.suspend()
         // Wiping the keyboard must not switch the input source either.
         InstantInputSwitchService.shared.suspend()
+        if AppFeature.instantInputSwitch.isAvailable { FocusLanguageBadgeService.shared.suspend() }
         // Wiping the trackpad is nothing but stray three-finger contacts;
         // middle-click emulation must not fire from them.
         MiddleClickService.shared.suspend()
@@ -202,6 +203,7 @@ final class CleaningModeManager: ObservableObject {
         KeyboardDebounceService.shared.syncWithPreferences()
         MouseClickDebounceService.shared.syncWithPreferences()
         InstantInputSwitchService.shared.syncWithPreferences()
+        if AppFeature.instantInputSwitch.isAvailable { FocusLanguageBadgeService.shared.syncWithPreferences() }
         MiddleClickService.shared.syncWithPreferences()
         MouseNavigationService.shared.syncWithPreferences()
         MouseButtonShortcutService.shared.syncWithPreferences()

@@ -542,6 +542,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/SuperKey/SuperKeyMappingGuard.swift
         Sources/Vorssaint/Core/SuperKeyStrings.swift
         Sources/Vorssaint/Services/InstantInputSwitch/InstantInputSwitchSupport.swift
+        Sources/Vorssaint/Services/InstantInputSwitch/FocusLanguageBadgeSupport.swift
         Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuardSupport.swift
         Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuard.swift
         Sources/Vorssaint/Core/InstantInputSwitchStrings.swift

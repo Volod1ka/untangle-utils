@@ -17,6 +17,7 @@ enum InstantInputSwitchTests {
         rewrite(suite)
         deadKeys(suite)
         quickControlSpace(suite)
+        focusBadge(suite)
     }
 
     // MARK: - Triggers
@@ -177,13 +178,24 @@ enum InstantInputSwitchTests {
                 && feature.permissions == [.accessibility]
                 && feature.energyProfile == .keyboard,
                "it is one keyboard tap behind one switch, through Accessibility")
+        let badgeOnly = AppFeature.activeFeatures(using: .accessibility,
+                                                  isAvailable: { $0 == .instantInputSwitch },
+                                                  boolFor: { $0 == DefaultsKey.instantInputSwitchFocusBadge },
+                                                  stringFor: { _ in nil })
+        let neither = AppFeature.activeFeatures(using: .accessibility,
+                                                isAvailable: { $0 == .instantInputSwitch },
+                                                boolFor: { _ in false },
+                                                stringFor: { _ in nil })
+        suite.expect(badgeOnly == [.instantInputSwitch] && neither.isEmpty,
+               "the focus badge alone puts it to work through Accessibility, without being its main switch")
         let defaults = Defaults.registeredDefaults
         suite.expect(defaults[DefaultsKey.instantInputSwitchEnabled] as? Bool == false
                 && defaults[DefaultsKey.instantInputSwitchTrigger] as? String == "controlSpace"
                 && defaults[DefaultsKey.inputSourceGuardEnabled] as? Bool == true
                 && defaults[DefaultsKey.inputSourceGuardStrategy] as? String == "rewrite"
-                && defaults[DefaultsKey.inputSourceGuardMilliseconds] as? Int == 300,
-               "it ships off, on Control-Space, with the guard rewriting for 300 ms")
+                && defaults[DefaultsKey.inputSourceGuardMilliseconds] as? Int == 300
+                && defaults[DefaultsKey.instantInputSwitchFocusBadge] as? Bool == false,
+               "it ships off, on Control-Space, with the guard rewriting for 300 ms and no focus badge")
         suite.expect(defaults[DefaultsKey.panelControlInstantInputSwitch] as? Bool == true
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.panelControlInstantInputSwitch),
                "its menu panel row shows by default and travels with a settings backup")
@@ -205,6 +217,8 @@ enum InstantInputSwitchTests {
                    "the window format shows its milliseconds in \(language.rawValue)")
             let triggers = Set(InstantInputSwitchTrigger.allCases.map(text.triggerLabel))
             let strategies = Set(InputSourceGuardStrategy.allCases.map(text.strategyLabel))
+            suite.expect(text.focusBadgeToggle != text.indicatorToggle,
+                   "the badge and the macOS indicator have their own switches in \(language.rawValue)")
             suite.expect(triggers.count == InstantInputSwitchTrigger.allCases.count
                     && strategies.count == InputSourceGuardStrategy.allCases.count,
                    "every trigger and method has its own label in \(language.rawValue)")
@@ -214,6 +228,137 @@ enum InstantInputSwitchTests {
                        "\(language.rawValue) is translated, not the English text")
             }
         }
+    }
+
+    // MARK: - Focus badge
+
+    private static func focusBadge(_ suite: TestSuite) {
+        typealias Badge = FocusLanguageBadgeSupport
+        suite.expect(Badge.isTextInput(role: "AXTextField") && Badge.isTextInput(role: "AXTextArea")
+                && Badge.isTextInput(role: "AXComboBox"),
+               "text fields (secure and search ones among them), text views and combo boxes take the badge")
+        suite.expect(!Badge.isTextInput(role: "AXButton") && !Badge.isTextInput(role: "AXWebArea")
+                && !Badge.isTextInput(role: nil),
+               "buttons, whole web pages and unknown elements do not")
+
+        var memory = Badge.FocusMemory<String>()
+        suite.expect(memory.focusMoved(to: "name", isTextInput: true),
+               "focus arriving in a field shows the badge")
+        suite.expect(!memory.focusMoved(to: "name", isTextInput: true),
+               "the same field again does not")
+        suite.expect(!memory.focusMoved(to: "list", isTextInput: false)
+                && memory.focusMoved(to: "name", isTextInput: true),
+               "leaving for something else and coming back shows it again")
+        suite.expect(!memory.focusMoved(to: nil, isTextInput: true),
+               "no element, no badge")
+        _ = memory.focusMoved(to: "mail", isTextInput: true)
+        memory.reset()
+        suite.expect(memory.focusMoved(to: "mail", isTextInput: true),
+               "a reset, such as another app coming to the front, forgets the last field")
+
+        let field = CGRect(x: 100, y: 200, width: 300, height: 24)
+        let caret = CGRect(x: 180, y: 204, width: 0, height: 16)
+        suite.expect(Badge.anchor(caret: caret, field: field) == .init(rect: caret, source: .caret),
+               "a caret inside its field is the anchor, even a zero-width one, as for macOS's indicator")
+        suite.expect(Badge.anchor(caret: .zero, field: field) == .init(rect: field, source: .field),
+               "a zero caret falls back to the one-line field, never to the mouse pointer")
+        suite.expect(Badge.anchor(caret: CGRect(x: 900, y: 900, width: 1, height: 16), field: field)?.source
+                == .field,
+               "so does a caret far from its field")
+        // Measured in Telegram, full screen: the caret comes back one caret
+        // height above where it is, overlapping the top of its field.
+        let telegramField = CGRect(x: 548, y: 1005, width: 992, height: 26)
+        let telegramCaret = CGRect(x: 548, y: 994, width: 0, height: 16)
+        suite.expect(Badge.anchor(caret: telegramCaret, field: telegramField)
+                == .init(rect: CGRect(x: 548, y: 1010, width: 0, height: 16), source: .correctedCaret),
+               "a caret measured off its one-line field keeps its x and is centred back in the field")
+        let note = CGRect(x: 0, y: 100, width: 600, height: 400)
+        suite.expect(Badge.anchor(caret: CGRect(x: 40, y: 90, width: 0, height: 16), field: note)
+                == .init(rect: CGRect(x: 40, y: 100, width: 0, height: 16), source: .correctedCaret),
+               "in a text view it is pulled back just inside the edge it crossed")
+        suite.expect(Badge.anchor(caret: CGRect(x: 548, y: 1007, width: 0, height: 16), field: telegramField)?.source
+                == .caret,
+               "a caret within a few points of its field is trusted as measured")
+        suite.expect(Badge.anchor(caret: CGRect(x: 100, y: 200, width: 300, height: 600), field: nil) == nil,
+               "a caret as tall as a page is not a caret")
+        let view = CGRect(x: 0, y: 0, width: 800, height: 600)
+        suite.expect(Badge.anchor(caret: nil, field: view) == nil,
+               "a tall text view without a caret, such as a terminal, shows nothing rather than a wrong place")
+        suite.expect(Badge.anchor(caret: nil, field: nil) == nil,
+               "nothing known about the text, nothing shown")
+
+        let glyph = CGRect(x: 50, y: 60, width: 8, height: 16)
+        suite.expect(Badge.caret(collapsed: CGRect(x: 40, y: 60, width: 0, height: 16), before: glyph, after: nil)
+                == CGRect(x: 40, y: 60, width: 0, height: 16),
+               "a measured empty range is the caret")
+        suite.expect(Badge.caret(collapsed: .zero, before: glyph, after: nil)
+                == CGRect(x: 58, y: 60, width: 0, height: 16),
+               "otherwise the caret sits at the right edge of the character before it")
+        suite.expect(Badge.caret(collapsed: nil, before: nil, after: glyph)
+                == CGRect(x: 50, y: 60, width: 0, height: 16),
+               "or at the left edge of the one after it")
+        suite.expect(Badge.caret(collapsed: .zero, before: .zero, after: nil) == nil,
+               "zero rects are no caret at all")
+        suite.expect(Badge.hidesItsContent(focusedRole: "AXWindow")
+                && !Badge.hidesItsContent(focusedRole: "AXWebArea")
+                && !Badge.hidesItsContent(focusedRole: "AXTextArea")
+                && !Badge.hidesItsContent(focusedRole: nil),
+               "only an app that names its bare window as the focus is asked for assistive mode")
+
+        // Bundles as they ship (Firefox, Chrome, Slack, Telegram, Preview).
+        let noHelpers: (String) -> Bool = { _ in false }
+        suite.expect(Badge.embedsWebEngine(executables: ["firefox", "XUL"], frameworks: ["ChannelPrefs.framework"],
+                                           frameworkHasHelpers: noHelpers),
+               "Firefox and its kin carry Gecko beside the executable")
+        suite.expect(Badge.embedsWebEngine(executables: ["Google Chrome"],
+                                           frameworks: ["Google Chrome Framework.framework"],
+                                           frameworkHasHelpers: { $0 == "Google Chrome Framework.framework" }),
+               "a Chromium browser carries a product framework holding its helpers")
+        suite.expect(Badge.embedsWebEngine(executables: ["Slack"],
+                                           frameworks: ["Electron Framework.framework", "Slack Helper (Renderer).app"],
+                                           frameworkHasHelpers: noHelpers),
+               "an Electron app carries Electron's framework")
+        suite.expect(!Badge.embedsWebEngine(executables: ["Telegram"],
+                                            frameworks: ["libswiftCore.dylib", "Sparkle.framework"],
+                                            frameworkHasHelpers: noHelpers)
+                && !Badge.embedsWebEngine(executables: ["Preview"], frameworks: [], frameworkHasHelpers: noHelpers)
+                && !Badge.embedsWebEngine(executables: ["Tool"], frameworks: ["Tool Framework.framework"],
+                                          frameworkHasHelpers: noHelpers),
+               "native apps, and a framework merely named like Chromium's, carry no web engine")
+
+        typealias Assisted = FocusLanguageBadgeSupport.AssistedApp
+        let assisted = Assisted(pid: 812, launched: 1_790_000_000.25, mode: .enhanced)
+        suite.expect(Assisted(stored: assisted.stored) == assisted
+                && Assisted(stored: ["pid": 1, "launched": 2.0, "mode": "other"]) == nil
+                && Assisted(stored: [:]) == nil,
+               "a recorded app reads back as written, and a damaged record is dropped")
+        suite.expect(assisted.isSameProcess(launchedAt: 1_790_000_000.7)
+                && !assisted.isSameProcess(launchedAt: 1_790_000_420)
+                && !assisted.isSameProcess(launchedAt: nil),
+               "only the process that was switched is switched back, not a later one given its pid")
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.instantInputSwitchFocusBadgeAssisted] == nil
+                && !SettingsBackupSupport.exportKeys().contains(DefaultsKey.instantInputSwitchFocusBadgeAssisted),
+               "the record of switched apps is this Mac's state, never a setting to back up")
+
+        let screen = CGRect(x: 0, y: 25, width: 1440, height: 875)
+        let size = CGSize(width: 90, height: 24)
+        let below = Badge.origin(for: size, under: caret, screens: [screen])
+        suite.expect(below == CGPoint(x: caret.minX, y: caret.maxY + Badge.gap),
+               "the badge hangs just under the caret")
+        let low = CGRect(x: 200, y: 890, width: 0, height: 8)
+        suite.expect(Badge.origin(for: size, under: low, screens: [screen]).y == low.minY - Badge.gap - size.height,
+               "at the bottom of the screen it sits over the caret instead")
+        suite.expect(Badge.origin(for: size, under: CGRect(x: 1430, y: 300, width: 0, height: 16),
+                                  screens: [screen]).x == screen.maxX - size.width,
+               "it never runs off the right edge")
+        let second = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+        suite.expect(Badge.origin(for: size, under: CGRect(x: 1500, y: 500, width: 0, height: 16),
+                                  screens: [screen, second]).x == 1500,
+               "on a second display it stays on that display")
+        let rect = CGRect(x: 10, y: 20, width: 30, height: 40)
+        suite.expect(Badge.flipped(rect, primaryHeight: 900) == CGRect(x: 10, y: 840, width: 30, height: 40)
+                && Badge.flipped(Badge.flipped(rect, primaryHeight: 900), primaryHeight: 900) == rect,
+               "flipping between Accessibility and AppKit space is its own inverse")
     }
 
     // MARK: - Rewrite against a real layout

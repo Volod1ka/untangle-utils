@@ -166,6 +166,11 @@ enum SelfUninstall {
         // key is never left remapped behind a tap that is about to die.
         SuperKeyService.shared.suspend()
         InstantInputSwitchService.shared.suspend()
+        // Waits, a bounded time, until apps the language badge switched into an
+        // assistive mode are switched back; the next launch finishes the rest.
+        if AppFeature.instantInputSwitch.isAvailable || FocusLanguageBadgeRecovery.hasPendingEntries() {
+            FocusLanguageBadgeService.shared.suspend(waitForCleanup: true)
+        }
         DockClickService.shared.suspend()
         MiddleClickService.shared.suspend()
         QuitProtectionService.shared.suspend()

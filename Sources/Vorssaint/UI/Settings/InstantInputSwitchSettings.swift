@@ -9,6 +9,7 @@ struct InstantInputSwitchSettings: View {
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var service = InstantInputSwitchService.shared
     @AppStorage(DefaultsKey.instantInputSwitchEnabled) private var enabled = false
+    @AppStorage(DefaultsKey.instantInputSwitchFocusBadge) private var focusBadge = false
     @AppStorage(DefaultsKey.instantInputSwitchTrigger) private var triggerRaw =
         InstantInputSwitchTrigger.controlSpace.rawValue
     @AppStorage(DefaultsKey.inputSourceGuardEnabled) private var guardEnabled = true
@@ -97,7 +98,8 @@ struct InstantInputSwitchSettings: View {
             }
             .disabled(!enabled)
 
-            // A macOS setting of its own: it works with the feature off too.
+            // A macOS setting of its own, and UnTangle's badge beside it: both
+            // work with the feature off, and neither depends on the other.
             Section(text.indicatorSection) {
                 Toggle(text.indicatorToggle, isOn: Binding(
                     get: { languageIndicatorShown },
@@ -108,9 +110,19 @@ struct InstantInputSwitchSettings: View {
                 Text(text.indicatorCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle(text.focusBadgeToggle, isOn: $focusBadge)
+                    .onChange(of: focusBadge) { _, value in
+                        FocusLanguageBadgeService.shared.syncWithPreferences()
+                        guard value, !permissions.accessibility else { return }
+                        permissions.requestAccessibility()
+                        permissions.openAccessibilitySettings()
+                    }
+                Text(text.focusBadgeCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            if enabled, !permissions.accessibility {
+            if enabled || focusBadge, !permissions.accessibility {
                 Section(l10n.s.permissionRequired) {
                     PermissionRow(kind: .accessibility)
                 }
