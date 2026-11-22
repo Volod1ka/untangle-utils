@@ -15,6 +15,11 @@ import Darwin
 enum OwnKeyEvent {
     static let quitProtectionMarker: Int64 = 0x5652535341494E54 // "VRSSAINT"
     static let textSnippetMarker: Int64 = 0x564F5253 // "VORS"
+    /// Instant input switch replays held hardware keys as copies, which keep
+    /// the hardware source's process id like Quit Protection's do.
+    static let instantInputSwitchMarker: Int64 = 0x494E5357 // "INSW"
+    /// The same, for keys the Super key's input source switch holds back.
+    static let superKeyInputGuardMarker: Int64 = 0x53504B47 // "SPKG"
 
     private static let ownProcessID = Int64(getpid())
 
@@ -22,6 +27,8 @@ enum OwnKeyEvent {
         sourceProcessID == ownProcessID
             || userData == quitProtectionMarker
             || userData == textSnippetMarker
+            || userData == instantInputSwitchMarker
+            || userData == superKeyInputGuardMarker
     }
 
     static func isPosted(_ event: CGEvent) -> Bool {

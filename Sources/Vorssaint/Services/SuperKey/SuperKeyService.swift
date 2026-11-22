@@ -119,6 +119,11 @@ final class SuperKeyService: ObservableObject {
     /// it, even though the persistent marker is not written until readback.
     private var pendingMappingEnableCount = 0
     private let mappingRepairInterval: TimeInterval = 3
+    /// Keeps the first letters after a solo-tap input source switch in the
+    /// new layout. Settings are shared with Instant input switch.
+    /// The mouse tap sees presses only, so clicks are never held.
+    private let inputGuard = InputSourceGuard(marker: OwnKeyEvent.superKeyInputGuardMarker,
+                                              holdsClicks: false)
     /// Main-thread only, and scheduled only while the keyboard is absent.
     private var keyboardRetry: DispatchWorkItem?
     private var keyboardRetryDelay: TimeInterval = 0.25
@@ -322,6 +327,8 @@ final class SuperKeyService: ObservableObject {
 
             let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
             lifecycleLock.withLock { self.tap = tap }
+            // Nothing a previous tap held or armed carries over.
+            inputGuard.reset()
             CFRunLoopAddSource(runLoop, source, .commonModes)
             CGEvent.tapEnable(tap: tap, enable: true)
 
@@ -380,6 +387,9 @@ final class SuperKeyService: ObservableObject {
                 if let mouseSource { CFRunLoopRemoveSource(runLoop, mouseSource, .commonModes) }
                 CFMachPortInvalidate(mouseTap)
             }
+            // Keys the input source guard holds go out rather than being lost,
+            // from this thread once neither tap hears anything more.
+            inputGuard.flush(endingWindow: true)
             if clearEventTapThread() { startOnMain() }
         }
     }
@@ -754,6 +764,21 @@ final class SuperKeyService: ObservableObject {
     // MARK: - The tap
 
     private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        // The guard's own replayed copies already went through the super key
+        // once, as the presses they copy.
+        if inputGuard.absorbReplay(event) { return Unmanaged.passUnretained(event) }
+        guard let result = handleSuperKey(type: type, event: event) else { return nil }
+        guard type == .keyDown || type == .keyUp || Self.mouseDownTypes.contains(type) else { return result }
+        let passed = result.takeUnretainedValue()
+        // A chord carries the super key's modifiers by now, but a set of them
+        // with neither ⌘ nor ⌃ still reads as typing: never rewrite one.
+        let chord = stateLock.withLock { state.isHeld }
+        return inputGuard.process(type: type, event: passed,
+                                  timestamp: EventTimestamp.nanoseconds(of: passed),
+                                  rewriteAllowed: !chord) ? result : nil
+    }
+
+    private func handleSuperKey(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             let currentTaps = lifecycleLock.withLock {
                 shouldStopTapThread ? (nil, nil) : (tap, mouseTap)
@@ -808,10 +833,12 @@ final class SuperKeyService: ObservableObject {
             event.flags = event.flags.union(modifierFlags)
             return Unmanaged.passUnretained(event)
         case .soloTap(repeated: let repeated):
-            performSoloAction(longHold: false, repeated: repeated, flags: event.flags)
+            performSoloAction(longHold: false, repeated: repeated, flags: event.flags,
+                              timestamp: EventTimestamp.nanoseconds(of: event))
             return nil
         case .soloHold(repeated: let repeated):
-            performSoloAction(longHold: true, repeated: repeated, flags: event.flags)
+            performSoloAction(longHold: true, repeated: repeated, flags: event.flags,
+                              timestamp: EventTimestamp.nanoseconds(of: event))
             return nil
         case .interceptAndRemap:
             if source == .capsLock { stateLock.withLock { rawCapsLockCount &+= 1 } }
@@ -923,7 +950,8 @@ final class SuperKeyService: ObservableObject {
 
     // MARK: - Tapped on its own
 
-    private func performSoloAction(longHold: Bool, repeated: Bool, flags: CGEventFlags) {
+    private func performSoloAction(longHold: Bool, repeated: Bool, flags: CGEventFlags,
+                                   timestamp: UInt64) {
         let action = stateLock.withLock { soloAction }
         switch SuperKeySupport.soloEffect(action: action,
                                           longHold: longHold,
@@ -938,7 +966,7 @@ final class SuperKeyService: ObservableObject {
             // Must finish before this tap returns: the next keystroke is already
             // in flight, and hopping to main (or waiting on Accessibility) left
             // that character in the old source.
-            Self.selectNextInputSource()
+            switchInputSource(at: timestamp)
         }
     }
 
@@ -963,36 +991,25 @@ final class SuperKeyService: ObservableObject {
         return true
     }
 
-    /// Cycle enabled keyboard sources through TIS before the tap lets the next
-    /// key through. An earlier path asked another app for marked text (up to
-    /// 200 ms) and then slept 100 ms so Control-Space could commit IME
-    /// composition; that wait ran on every tap, including ones with nothing to
-    /// commit. Selecting the next source directly lets the input method commit
+    /// Cycles to the next enabled source before the tap lets the next key go,
+    /// then guards the first letters typed after it: apps apply the new
+    /// source late, and on macOS 26 late enough for the first letter of a
+    /// word to come out in the old one. An earlier path asked another app for
+    /// marked text (up to 200 ms) and then slept 100 ms so Control-Space could
+    /// commit IME composition; selecting directly lets the input method commit
     /// or cancel on its own, the same way the Input menu does.
-    private static func selectNextInputSource() {
-        let apply = {
-            let sources = InputSourceSelection.selectableInputSources()
-            let ids = sources.compactMap {
-                InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID)
-            }
-            guard let current = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue() else { return }
-            let currentID = InputSourceSelection.inputSourceString(current, property: kTISPropertyInputSourceID)
-            guard let nextID = SuperKeySupport.nextInputSourceID(currentID: currentID,
-                                                                 enabledIDs: ids),
-                  let next = sources.first(where: {
-                      InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID) == nextID
-                  })
-            else { return }
-            _ = TISSelectInputSource(next)
-        }
-        // TIS talks to the text-input server from the main thread. sync (not
-        // async) keeps the switch ahead of the next keystroke this tap is
-        // about to let through.
-        if Thread.isMainThread {
-            apply()
-        } else {
-            DispatchQueue.main.sync(execute: apply)
-        }
+    private func switchInputSource(at timestamp: UInt64) {
+        // Keys held for the previous source go out before it changes again.
+        inputGuard.flush(endingWindow: true)
+        guard let selection = InputSourceSwitcher.selectNext(),
+              // A stop that ran while main selected must not inherit a window.
+              !lifecycleLock.withLock({ shouldStopTapThread })
+        else { return }
+        // The guard is BETA and its controls live on Instant input switch's
+        // page, so the Super key uses it only while that feature is installed.
+        var settings = InputSourceGuard.Settings.current()
+        settings.enabled = settings.enabled && AppFeature.instantInputSwitch.isAvailable
+        inputGuard.arm(for: selection, at: timestamp, settings: settings)
     }
 
     // MARK: - Caps Lock itself

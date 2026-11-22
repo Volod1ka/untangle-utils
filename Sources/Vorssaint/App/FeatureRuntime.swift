@@ -268,6 +268,7 @@ final class FeatureRuntime: ObservableObject {
         .keyboardDebounce: { KeyboardDebounceService.shared.syncWithPreferences() },
         .quitWindowProtection: { QuitProtectionService.shared.syncWithPreferences() },
         .superKey: { SuperKeyService.shared.syncWithPreferences() },
+        .instantInputSwitch: { InstantInputSwitchService.shared.syncWithPreferences() },
         .textSnippets: {
             TextSnippetService.shared.syncWithPreferences()
             SnippetLibraryService.shared.syncWithPreferences()

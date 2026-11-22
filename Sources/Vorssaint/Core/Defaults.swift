@@ -90,6 +90,14 @@ enum DefaultsKey {
     // and which source to take back after a crash.
     static let superKeyMappingApplied = "superKeyMappingApplied"
     static let superKeyMappedSource = "superKeyMappedSource"
+    // Instant input switch (BETA): its own trigger.
+    static let instantInputSwitchEnabled = "instantInputSwitchEnabled"
+    static let instantInputSwitchTrigger = "instantInputSwitchTrigger"       // InstantInputSwitchTrigger raw value
+    // The first-letter guard after a switch, shared by Instant input switch
+    // and the Super key's input source tap.
+    static let inputSourceGuardEnabled = "inputSourceGuardEnabled"
+    static let inputSourceGuardStrategy = "inputSourceGuardStrategy"         // InputSourceGuardStrategy raw value
+    static let inputSourceGuardMilliseconds = "inputSourceGuardMilliseconds"
     // One list of bundle ids per mouse feature: apps it leaves alone (issue #358).
     static let smoothScrollExceptions = "smoothScrollExceptions"
     static let linearScrollExceptions = "linearScrollExceptions"
@@ -378,6 +386,7 @@ enum DefaultsKey {
     static let panelControlMiddleClick = "panelControlMiddleClick"
     static let panelControlTextSnippets = "panelControlTextSnippets"
     static let panelControlSuperKey = "panelControlSuperKey"
+    static let panelControlInstantInputSwitch = "panelControlInstantInputSwitch"
     static let panelControlRadialMenu = "panelControlRadialMenu"
     static let panelControlMouseButtonShortcuts = "panelControlMouseButtonShortcuts"
     static let panelControlMouseAcceleration = "panelControlMouseAcceleration"
@@ -1303,6 +1312,11 @@ enum Defaults {
         DefaultsKey.superKeySource: SuperKeySource.capsLock.rawValue,
         DefaultsKey.superKeyModifiers: SuperKeySupport.defaultModifierStorageValue,
         DefaultsKey.superKeySoloAction: SuperKeySoloAction.none.rawValue,
+        DefaultsKey.instantInputSwitchEnabled: false,
+        DefaultsKey.instantInputSwitchTrigger: InstantInputSwitchTrigger.controlSpace.rawValue,
+        DefaultsKey.inputSourceGuardEnabled: true,
+        DefaultsKey.inputSourceGuardStrategy: InputSourceGuardStrategy.rewrite.rawValue,
+        DefaultsKey.inputSourceGuardMilliseconds: InputSourceGuardSupport.defaultMilliseconds,
         DefaultsKey.smoothScrollExceptions: [String](),
         DefaultsKey.linearScrollExceptions: [String](),
         DefaultsKey.scrollSpeedExceptions: [String](),
@@ -1668,6 +1682,7 @@ enum Defaults {
         DefaultsKey.panelControlMiddleClick: true,
         DefaultsKey.panelControlTextSnippets: true,
         DefaultsKey.panelControlSuperKey: true,
+        DefaultsKey.panelControlInstantInputSwitch: true,
         DefaultsKey.panelControlRadialMenu: true,
         DefaultsKey.panelControlMouseButtonShortcuts: true,
         DefaultsKey.panelControlMouseAcceleration: true,

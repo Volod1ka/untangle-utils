@@ -1116,7 +1116,7 @@ struct UtilitiesSection: View {
 private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
     case mouseScroll, smoothScroll, linearScroll, focusFollowsMouse, mouseAcceleration, mouseNavigation, switcher, cutPaste, autoQuit, shelf, windowMaximize, dockPreview, keyDebounce,
          dockClick, dockClickHide, dockClickCycle, middleClick, textSnippets, radialMenu, mouseButtonShortcuts, superKey,
-         mouseClickDebounce, notch, spacesOrder
+         mouseClickDebounce, notch, spacesOrder, instantInputSwitch
 
     var id: String { rawValue }
 
@@ -1146,6 +1146,7 @@ private enum ControlPanelItem: String, PanelOrderItem, Identifiable {
         case .mouseButtonShortcuts: return .mouseButtonShortcuts
         case .superKey: return .superKey
         case .mouseClickDebounce: return .mouseClickDebounce
+        case .instantInputSwitch: return .instantInputSwitch
         }
     }
 }
@@ -1163,7 +1164,7 @@ private enum ControlCategory: String, CaseIterable, Identifiable {
              .spacesOrder:
             return .windows
         case .mouseScroll, .smoothScroll, .linearScroll, .focusFollowsMouse, .mouseAcceleration, .mouseNavigation, .mouseButtonShortcuts, .middleClick, .keyDebounce,
-             .textSnippets, .radialMenu, .superKey, .mouseClickDebounce:
+             .textSnippets, .radialMenu, .superKey, .mouseClickDebounce, .instantInputSwitch:
             return .inputDevices
         case .cutPaste, .shelf:
             return .files
@@ -1240,6 +1241,10 @@ struct QuickControlsSection: View {
     @AppStorage(DefaultsKey.panelControlRadialMenu) private var showRadialMenu = true
     @AppStorage(DefaultsKey.panelControlMouseButtonShortcuts) private var showMouseButtonShortcuts = true
     @AppStorage(DefaultsKey.panelControlSuperKey) private var showSuperKey = true
+    @AppStorage(DefaultsKey.instantInputSwitchEnabled) private var instantInputSwitchEnabled = false
+    @AppStorage(DefaultsKey.instantInputSwitchTrigger) private var instantInputSwitchTriggerRaw =
+        InstantInputSwitchTrigger.controlSpace.rawValue
+    @AppStorage(DefaultsKey.panelControlInstantInputSwitch) private var showInstantInputSwitch = true
     @AppStorage(DefaultsKey.panelControlMouseAcceleration) private var showMouseAcceleration = true
     @AppStorage(DefaultsKey.panelControlMouseClickDebounce) private var showMouseClickDebounce = true
     @AppStorage(DefaultsKey.panelControlWindowsExpanded) private var windowsExpanded = false
@@ -1366,6 +1371,7 @@ struct QuickControlsSection: View {
         case .mouseButtonShortcuts: return mouseButtonShortcutsEnabled || spacesEnabled
         case .superKey: return superKeyEnabled
         case .mouseClickDebounce: return mouseClickDebounceEnabled
+        case .instantInputSwitch: return instantInputSwitchEnabled
         }
     }
 
@@ -1447,6 +1453,7 @@ struct QuickControlsSection: View {
         case .mouseButtonShortcuts: return showMouseButtonShortcuts
         case .superKey: return showSuperKey
         case .mouseClickDebounce: return showMouseClickDebounce
+        case .instantInputSwitch: return showInstantInputSwitch
         }
     }
 
@@ -1860,6 +1867,31 @@ struct QuickControlsSection: View {
                     SuperKeyService.shared.syncWithPreferences()
                     requestAccessibilityIfNeeded(enabled)
                 }
+        case .instantInputSwitch:
+            // The caption names the key that switches, the way the Super
+            // key's row names its mapping.
+            let switchStrings = FeatureStrings.instantInputSwitch(l10n.language)
+            let trigger = InstantInputSwitchTrigger.sanitized(instantInputSwitchTriggerRaw)
+            PanelToggleRow(title: switchStrings.pageTitle,
+                           caption: caption(switchStrings.triggerLabel(trigger),
+                                            needsAccessibility: instantInputSwitchEnabled),
+                           systemImage: "globe",
+                           isOn: $instantInputSwitchEnabled,
+                           isEditing: editing,
+                           showsDragHandle: true,
+                           visibility: $showInstantInputSwitch,
+                           needsAttention: instantInputSwitchEnabled && !permissions.accessibility,
+                           permissionButtonTitle: l10n.s.permissionRequest,
+                           permissionAction: accessibilityPermissionAction(instantInputSwitchEnabled),
+                           accessoryTitle: instantInputSwitchEnabled ? switchStrings.manageButton : nil,
+                           accessoryAction: {
+                               SettingsRouter.shared.page = .instantInputSwitch
+                               appDelegate()?.openSettingsWindow()
+                           })
+                .onChange(of: instantInputSwitchEnabled) { _, enabled in
+                    InstantInputSwitchService.shared.syncWithPreferences()
+                    requestAccessibilityIfNeeded(enabled)
+                }
         case .mouseAcceleration:
             PanelToggleRow(title: l10n.s.mouseAccelerationName,
                            caption: l10n.s.mouseAccelerationCaption,
@@ -1933,6 +1965,7 @@ struct QuickControlsSection: View {
         showRadialMenu = true
         showMouseButtonShortcuts = true
         showSuperKey = true
+        showInstantInputSwitch = true
         showMouseAcceleration = true
         showLinearScroll = true
         showSmoothScroll = true
