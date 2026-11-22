@@ -239,8 +239,8 @@ final class FocusLanguageBadgeService {
         // did take. An app already asked by someone else is left as it is.
         if !consideredForManual.contains(pid), embedsWebEngine(pid) {
             consideredForManual.insert(pid)
-            if !Self.bool(application, Self.manualAccessibilityAttribute) {
-                FocusLanguageBadgeRecovery.record(pid: pid, mode: .manual)
+            if !Self.bool(application, Self.manualAccessibilityAttribute),
+               FocusLanguageBadgeRecovery.record(pid: pid, mode: .manual) {
                 _ = AXUIElementSetAttributeValue(application, Self.manualAccessibilityAttribute, kCFBooleanTrue)
             }
         }
@@ -313,7 +313,10 @@ final class FocusLanguageBadgeService {
             Self.log.notice("pid \(pid, privacy: .public) shows only its window; already in assistive mode")
             return
         }
-        FocusLanguageBadgeRecovery.record(pid: pid, mode: .enhanced)
+        guard FocusLanguageBadgeRecovery.record(pid: pid, mode: .enhanced) else {
+            Self.log.notice("pid \(pid, privacy: .public) shows only its window; not switched, its start time is unknown")
+            return
+        }
         // Setting it reports cannotComplete even when it takes effect, so
         // only the read-back counts.
         _ = AXUIElementSetAttributeValue(application, Self.enhancedUserInterfaceAttribute, kCFBooleanTrue)

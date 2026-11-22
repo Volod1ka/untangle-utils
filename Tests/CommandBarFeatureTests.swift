@@ -1114,7 +1114,7 @@ enum CommandBarFeatureTests {
         let inputSourceGuardSource = (try? String(
             contentsOfFile: "Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuard.swift",
             encoding: .utf8)) ?? ""
-        suite.expect(superKeySource.contains("InputSourceSwitcher.selectNext()")
+        suite.expect(superKeySource.contains("InputSourceSwitcher.select(order)")
                 && !superKeySource.contains("TISSelectInputSource(")
                 && inputSourceGuardSource.contains("InputSourceSelection.selectableInputSources()"),
                "the Super key cycle shares the TIS plumbing instead of its own copy")

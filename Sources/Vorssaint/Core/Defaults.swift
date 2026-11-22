@@ -86,6 +86,7 @@ enum DefaultsKey {
     static let superKeySource = "superKeySource"           // SuperKeySource raw value
     static let superKeyModifiers = "superKeyModifiers"     // GlobalShortcutModifiers storage tokens
     static let superKeySoloAction = "superKeySoloAction"  // SuperKeySoloAction raw value
+    static let superKeyInputSourceOrder = "superKeyInputSourceOrder"  // InputSourceSwitchOrder raw value
     // Machine state, never exported: whether the keyboard mapping is in place
     // and which source to take back after a crash.
     static let superKeyMappingApplied = "superKeyMappingApplied"
@@ -1318,6 +1319,7 @@ enum Defaults {
         DefaultsKey.superKeySource: SuperKeySource.capsLock.rawValue,
         DefaultsKey.superKeyModifiers: SuperKeySupport.defaultModifierStorageValue,
         DefaultsKey.superKeySoloAction: SuperKeySoloAction.none.rawValue,
+        DefaultsKey.superKeyInputSourceOrder: InputSourceSwitchOrder.next.rawValue,
         DefaultsKey.instantInputSwitchEnabled: false,
         DefaultsKey.instantInputSwitchTrigger: InstantInputSwitchTrigger.controlSpace.rawValue,
         DefaultsKey.instantInputSwitchFocusBadge: false,

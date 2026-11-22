@@ -158,6 +158,21 @@ enum InstantInputSwitchTests {
             "com.apple.keylayout.Ukrainian-PC", "com.apple.inputmethod.Japanese.Katakana",
             "com.apple.keylayout.ABC", "org.example.inputmethod", "org.sil.ukelele.keyboardlayout.mine.Custom",
         ], "macOS's own history maps to enabled source ids in order, once each, skipping removed sources")
+        // As stored on a real Mac: U.S. is stored under a name unlike its id.
+        let renamed: [[String: Any]] = [
+            ["InputSourceKind": "Keyboard Layout", "KeyboardLayout ID": -2354, "KeyboardLayout Name": "Ukrainian-PC"],
+            ["InputSourceKind": "Keyboard Layout", "KeyboardLayout ID": 0, "KeyboardLayout Name": "U.S."],
+            ["InputSourceKind": "Keyboard Layout", "KeyboardLayout ID": 19458, "KeyboardLayout Name": "RussianWin"],
+        ]
+        let renamedEnabled = ["com.apple.keylayout.US", "com.apple.keylayout.Ukrainian-PC", "com.apple.keylayout.RussianWin"]
+        suite.expect(Support.historyIDs(renamed, enabledIDs: renamedEnabled,
+                                        layoutNames: ["U.S.": "com.apple.keylayout.US",
+                                                      "RussianWin": "com.apple.keylayout.RussianWin",
+                                                      "Ukrainian-PC": "com.apple.keylayout.Ukrainian-PC"])
+                == ["com.apple.keylayout.Ukrainian-PC", "com.apple.keylayout.US", "com.apple.keylayout.RussianWin"]
+                && Support.historyIDs(renamed, enabledIDs: renamedEnabled)
+                    == ["com.apple.keylayout.Ukrainian-PC", "com.apple.keylayout.RussianWin"],
+               "a layout stored under a name unlike its id is found through the layout's own name")
         suite.expect(Support.historyIDs([], enabledIDs: installed).isEmpty,
                "no history leaves nothing to seed")
         suite.expect(Support.previousSourceID(currentID: "en", enabledIDs: ["en"], recentIDs: ["uk"]) == nil,
@@ -196,6 +211,12 @@ enum InstantInputSwitchTests {
                 && defaults[DefaultsKey.inputSourceGuardMilliseconds] as? Int == 300
                 && defaults[DefaultsKey.instantInputSwitchFocusBadge] as? Bool == false,
                "it ships off, on Control-Space, with the guard rewriting for 300 ms and no focus badge")
+        suite.expect(defaults[DefaultsKey.superKeyInputSourceOrder] as? String == "next"
+                && InputSourceSwitchOrder.sanitized(nil) == .next
+                && InputSourceSwitchOrder.sanitized("sideways") == .next
+                && InputSourceSwitchOrder.sanitized("previous") == .previous
+                && SettingsBackupSupport.exportKeys().contains(DefaultsKey.superKeyInputSourceOrder),
+               "the Super key keeps going through the list until previous is chosen, and the choice is backed up")
         suite.expect(defaults[DefaultsKey.panelControlInstantInputSwitch] as? Bool == true
                 && SettingsBackupSupport.exportKeys().contains(DefaultsKey.panelControlInstantInputSwitch),
                "its menu panel row shows by default and travels with a settings backup")
@@ -217,6 +238,8 @@ enum InstantInputSwitchTests {
                    "the window format shows its milliseconds in \(language.rawValue)")
             let triggers = Set(InstantInputSwitchTrigger.allCases.map(text.triggerLabel))
             let strategies = Set(InputSourceGuardStrategy.allCases.map(text.strategyLabel))
+            suite.expect(text.orderLabel(.previous) != text.orderLabel(.next),
+                   "the Super key's two switch orders read apart in \(language.rawValue)")
             suite.expect(text.focusBadgeToggle != text.indicatorToggle,
                    "the badge and the macOS indicator have their own switches in \(language.rawValue)")
             suite.expect(triggers.count == InstantInputSwitchTrigger.allCases.count

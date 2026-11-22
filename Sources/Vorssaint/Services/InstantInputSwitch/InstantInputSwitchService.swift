@@ -49,9 +49,6 @@ final class InstantInputSwitchService: ObservableObject {
     private var swallowingSpaceUp = false
     /// When the last switch began, to log how long macOS took to confirm it.
     private var switchedAtNanoseconds: UInt64 = 0
-    /// Recently used sources for Control-Space's "previous", the way macOS
-    /// keeps them.
-    private var recents = InputSourceRecents()
 
     /// Reached from the tap thread and from stop() on main, so it is built
     /// eagerly: a lazy property is not safe to initialize from two threads.
@@ -108,13 +105,9 @@ final class InstantInputSwitchService: ObservableObject {
     // MARK: - Watchers and the Control-Space take-over
 
     private func applyWatchers(running: Bool) {
+        // Control-Space's "previous" reads the shared history.
+        InputSourceRecentsTracker.shared.hold(running, for: Self.takeOverSource)
         if running {
-            if inputSourceObserver == nil {
-                // Starting or back from a pause: macOS kept the history while
-                // this tap could not, so "previous" starts from macOS's own.
-                seedRecentFromSystem()
-            }
-            if let current = InputSourceSelection.currentSourceID() { recordRecent(current) }
             if inputSourceObserver == nil {
                 inputSourceObserver = DistributedNotificationCenter.default().addObserver(
                     forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
@@ -175,8 +168,6 @@ final class InstantInputSwitchService: ObservableObject {
     }
 
     private func inputSourceDidChange() {
-        // Every change counts for "previous", the Input menu's included.
-        if let current = InputSourceSelection.currentSourceID() { recordRecent(current) }
         let now = Self.nowNanoseconds()
         let elapsed = stateLock.withLock { () -> Int? in
             let startedAt = switchedAtNanoseconds
@@ -422,10 +413,7 @@ final class InstantInputSwitchService: ObservableObject {
         // Control-Space keeps its macOS meaning: back to the previous source.
         // The other keys go on through the list.
         let order: InputSourceSwitcher.Order = trigger == .controlSpace
-            ? .previous(recentIDs: { [weak self] in
-                guard let self else { return [] }
-                return self.stateLock.withLock { self.recents.ids }
-            })
+            ? .previous(recentIDs: { InputSourceRecentsTracker.shared.ids })
             : .next
         guard let selection = InputSourceSwitcher.select(order) else {
             Self.log.notice("trigger \(trigger.rawValue, privacy: .public): nothing to switch to")
@@ -437,7 +425,7 @@ final class InstantInputSwitchService: ObservableObject {
         let selectMilliseconds = (Self.nowNanoseconds() - started) / 1_000_000
         // Recorded at once: a second press before macOS's notice arrives must
         // already go back from the new source.
-        stateLock.withLock { recents.switched(from: selection.previousID, to: selection.id) }
+        InputSourceRecentsTracker.shared.switched(from: selection.previousID, to: selection.id)
         let settings = InputSourceGuard.Settings.current()
         let strategy = inputGuard.arm(for: selection, at: timestamp, settings: settings)
         stateLock.withLock { switchedAtNanoseconds = started }
@@ -445,22 +433,6 @@ final class InstantInputSwitchService: ObservableObject {
     }
 
     // MARK: - Helpers
-
-    private func seedRecentFromSystem() {
-        let domain = "com.apple.HIToolbox" as CFString
-        CFPreferencesAppSynchronize(domain)
-        let entries = CFPreferencesCopyAppValue("AppleInputSourceHistory" as CFString, domain)
-            as? [[String: Any]] ?? []
-        let enabled = InputSourceSelection.selectableInputSources().compactMap {
-            InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID)
-        }
-        let history = InputSourceGuardSupport.historyIDs(entries, enabledIDs: enabled)
-        stateLock.withLock { recents.seed(history) }
-    }
-
-    private func recordRecent(_ id: String) {
-        stateLock.withLock { recents.noticed(id) }
-    }
 
     private func runOnMain(_ work: @escaping () -> Void) {
         if Thread.isMainThread { work() } else { DispatchQueue.main.async(execute: work) }

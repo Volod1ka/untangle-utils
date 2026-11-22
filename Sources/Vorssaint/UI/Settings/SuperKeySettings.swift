@@ -12,6 +12,8 @@ struct SuperKeySettings: View {
     @AppStorage(DefaultsKey.superKeyModifiers) private var modifierStorage =
         SuperKeySupport.defaultModifierStorageValue
     @AppStorage(DefaultsKey.superKeySoloAction) private var soloActionRaw = SuperKeySoloAction.none.rawValue
+    @AppStorage(DefaultsKey.superKeyInputSourceOrder) private var inputSourceOrderRaw =
+        InputSourceSwitchOrder.next.rawValue
 
     private var text: SuperKeyStrings { FeatureStrings.superKey(l10n.language) }
 
@@ -80,6 +82,17 @@ struct SuperKeySettings: View {
                 Text(text.soloCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if SuperKeySoloAction.sanitized(soloActionRaw) == .inputSource {
+                    let switchText = FeatureStrings.instantInputSwitch(l10n.language)
+                    Picker(switchText.orderLabel, selection: orderBinding) {
+                        ForEach(InputSourceSwitchOrder.allCases) { order in
+                            Text(switchText.orderLabel(order)).tag(order)
+                        }
+                    }
+                    Text(switchText.orderCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .disabled(!enabled)
 
@@ -206,6 +219,15 @@ struct SuperKeySettings: View {
         var remaining = selectedModifiers
         remaining.remove(modifier)
         return remaining.hasPrimaryModifier
+    }
+
+    private var orderBinding: Binding<InputSourceSwitchOrder> {
+        Binding {
+            InputSourceSwitchOrder.sanitized(inputSourceOrderRaw)
+        } set: { order in
+            inputSourceOrderRaw = order.rawValue
+            SuperKeyService.shared.syncWithPreferences()
+        }
     }
 
     private var soloBinding: Binding<SuperKeySoloAction> {

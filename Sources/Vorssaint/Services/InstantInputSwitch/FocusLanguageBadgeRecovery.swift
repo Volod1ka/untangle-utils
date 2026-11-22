@@ -31,12 +31,15 @@ enum FocusLanguageBadgeRecovery {
 
     // MARK: - On `queue`
 
-    /// Writes down a mode just set on an app.
-    static func record(pid: pid_t, mode: FocusLanguageBadgeSupport.AssistedApp.Mode) {
-        guard let launched = launchTime(of: pid) else { return }
+    /// Writes down a mode about to be set on an app, and says whether it
+    /// did: a mode that could not be written down must not be set, or
+    /// nothing would ever switch it back.
+    static func record(pid: pid_t, mode: FocusLanguageBadgeSupport.AssistedApp.Mode) -> Bool {
+        guard let launched = launchTime(of: pid) else { return false }
         var entries = load().filter { !($0.pid == pid && $0.mode == mode) }
         entries.append(Entry(pid: pid, launched: launched, mode: mode))
         save(entries)
+        return true
     }
 
     /// Drops an app that has quit: its modes went with it.
@@ -67,8 +70,17 @@ enum FocusLanguageBadgeRecovery {
 
     // MARK: - Storage
 
+    /// When the process started, from the kernel: LaunchServices knows no
+    /// launch date for an app started another way (`code` from a terminal,
+    /// Firefox from its binary), the kernel always does.
     private static func launchTime(of pid: pid_t) -> Double? {
-        NSRunningApplication(processIdentifier: pid)?.launchDate?.timeIntervalSince1970
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, pid]
+        guard sysctl(&name, u_int(name.count), &info, &size, nil, 0) == 0, size > 0,
+              info.kp_proc.p_pid == pid else { return nil }
+        let start = info.kp_proc.p_un.__p_starttime
+        return Double(start.tv_sec) + Double(start.tv_usec) / 1_000_000
     }
 
     private static func load() -> [Entry] {

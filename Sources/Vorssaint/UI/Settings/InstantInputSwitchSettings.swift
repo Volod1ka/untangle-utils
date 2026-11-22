@@ -19,12 +19,20 @@ struct InstantInputSwitchSettings: View {
         InputSourceGuardSupport.defaultMilliseconds
     @AppStorage(DefaultsKey.superKeyEnabled) private var superKeyEnabled = false
     @AppStorage(DefaultsKey.superKeySource) private var superKeySourceRaw = SuperKeySource.capsLock.rawValue
+    @AppStorage(DefaultsKey.superKeySoloAction) private var superKeySoloRaw = SuperKeySoloAction.none.rawValue
 
     /// Read from macOS on the way in, since it can change outside the app.
     @State private var languageIndicatorShown = true
 
     private var text: InstantInputSwitchStrings { FeatureStrings.instantInputSwitch(l10n.language) }
     private var trigger: InstantInputSwitchTrigger { InstantInputSwitchTrigger.sanitized(triggerRaw) }
+
+    /// The Super key's tap switches sources through the same guard, so its
+    /// settings stay open for it with this feature's own switch off.
+    private var superKeySwitchesSources: Bool {
+        AppFeature.superKey.isAvailable && superKeyEnabled
+            && SuperKeySoloAction.sanitized(superKeySoloRaw) == .inputSource
+    }
 
     private var shadowedBySuperKey: Bool {
         AppFeature.superKey.isAvailable && superKeyEnabled
@@ -96,7 +104,7 @@ struct InstantInputSwitchSettings: View {
                 }
                 .disabled(!guardEnabled)
             }
-            .disabled(!enabled)
+            .disabled(!enabled && !superKeySwitchesSources)
 
             // A macOS setting of its own, and UnTangle's badge beside it: both
             // work with the feature off, and neither depends on the other.

@@ -39,7 +39,20 @@ struct InstantInputSwitchStrings {
     /// UnTangle's own badge when a text field takes the focus.
     let focusBadgeToggle: String
     let focusBadgeCaption: String
+    /// Which way the Super key's tap switches. Both options are Apple's own
+    /// words for the two macOS shortcuts.
+    let orderLabel: String
+    let orderPrevious: String
+    let orderNext: String
+    let orderCaption: String
     let manageButton: String
+
+    func orderLabel(_ order: InputSourceSwitchOrder) -> String {
+        switch order {
+        case .previous: return orderPrevious
+        case .next: return orderNext
+        }
+    }
 
     func triggerLabel(_ trigger: InstantInputSwitchTrigger) -> String {
         switch trigger {
@@ -133,6 +146,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS shows the input source next to the text cursor after every switch. Turning it off can make switching feel quicker. This is a macOS setting: it takes effect after you log out and back in, and stays as set even without UnTangle.",
         focusBadgeToggle: "Show the language when a text field is focused",
         focusBadgeCaption: "Each time you click into a text field or move to one with Tab, UnTangle shows the current input source next to the cursor, so the language is in sight before you type. It works with the macOS indicator on or off. In browsers and apps built on web technologies, UnTangle turns on their accessibility support so they report their fields, which costs them a little more energy.",
+        orderLabel: "Switch to",
+        orderPrevious: "Select the previous input source",
+        orderNext: "Select next source in Input menu",
+        orderCaption: "The previous one goes back and forth between the two sources used last, like Control-Space in macOS, even with three or more. The next one goes through the list in the Input menu’s order.",
         manageButton: "Set up…"
     )
 
@@ -170,6 +187,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "O macOS mostra a fonte de entrada junto ao cursor de texto após cada troca. Desativá-lo pode deixar a troca mais ágil. É um ajuste do macOS: vale depois de encerrar a sessão e entrar de novo, e continua assim mesmo sem o UnTangle.",
         focusBadgeToggle: "Mostrar o idioma ao entrar num campo de texto",
         focusBadgeCaption: "Sempre que você clica num campo de texto ou chega a ele com Tab, o UnTangle mostra a fonte de entrada atual junto ao cursor, para ver o idioma antes de digitar. Funciona com o indicador do macOS ativado ou não. Em navegadores e apps feitos com tecnologias web, o UnTangle ativa o suporte de acessibilidade deles para que informem seus campos, o que gasta um pouco mais de energia.",
+        orderLabel: "Trocar para",
+        orderPrevious: "Selecionar o layout do teclado anterior",
+        orderNext: "Selecionar o próximo layout no menu Entrada",
+        orderCaption: "A anterior alterna entre as duas fontes usadas por último, como Control-Espaço no macOS, mesmo com três ou mais. A próxima percorre a lista na ordem do menu Entrada.",
         manageButton: "Configurar…"
     )
 
@@ -207,6 +228,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS her değişiklikten sonra giriş kaynağını metin imlecinin yanında gösterir. Kapatmak geçişi daha hızlı hissettirebilir. Bu bir macOS ayarıdır: oturumu kapatıp yeniden açtıktan sonra geçerli olur ve UnTangle olmadan da öyle kalır.",
         focusBadgeToggle: "Metin alanına geçince dili göster",
         focusBadgeCaption: "Bir metin alanına her tıkladığınızda ya da Sekme ile geçtiğinizde UnTangle geçerli giriş kaynağını imlecin yanında gösterir; böylece yazmadan önce dili görürsünüz. macOS göstergesi açık da olsa kapalı da olsa çalışır. Tarayıcılarda ve web teknolojileriyle yapılmış uygulamalarda UnTangle, alanlarını bildirmeleri için erişilebilirlik desteklerini açar; bu biraz daha fazla enerji harcatır.",
+        orderLabel: "Geçilecek kaynak",
+        orderPrevious: "Önceki giriş kaynağını seç",
+        orderNext: "Giriş menüsünde bir sonraki kaynağı seç",
+        orderCaption: "Önceki, macOS’teki Control-Boşluk gibi son kullanılan iki kaynak arasında gidip gelir; üç veya daha fazla kaynakta da. Sonraki, listeyi Giriş menüsündeki sırayla dolaşır.",
         manageButton: "Ayarla…"
     )
 
@@ -244,6 +269,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "После каждого переключения macOS показывает источник ввода рядом с текстовым курсором. Если его выключить, переключение может ощущаться быстрее. Это настройка macOS: она вступает в силу после выхода из системы и повторного входа и сохраняется даже без UnTangle.",
         focusBadgeToggle: "Показывать язык при переходе в текстовое поле",
         focusBadgeCaption: "Каждый раз, когда вы щёлкаете в текстовое поле или переходите в него клавишей Tab, UnTangle показывает текущий источник ввода рядом с курсором, чтобы язык был виден до начала набора. Работает независимо от индикатора macOS. В браузерах и программах на веб-технологиях UnTangle включает их поддержку универсального доступа, чтобы они сообщали о своих полях; это немного увеличивает их расход энергии.",
+        orderLabel: "Переключать на",
+        orderPrevious: "Выбрать предыдущий источник ввода",
+        orderNext: "Выбрать следующий источник в меню ввода",
+        orderCaption: "Предыдущий переключает между двумя последними источниками, как Control-Пробел в macOS, даже если их три и больше. Следующий идёт по списку в порядке меню ввода.",
         manageButton: "Настроить…"
     )
 
@@ -281,6 +310,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS muestra la fuente de entrada junto al cursor de texto tras cada cambio. Desactivarlo puede hacer que el cambio se sienta más rápido. Es un ajuste de macOS: se aplica después de cerrar sesión y volver a entrar, y se mantiene aunque no uses UnTangle.",
         focusBadgeToggle: "Mostrar el idioma al entrar en un campo de texto",
         focusBadgeCaption: "Cada vez que haces clic en un campo de texto o llegas a él con Tab, UnTangle muestra la fuente de entrada actual junto al cursor, para que veas el idioma antes de escribir. Funciona con el indicador de macOS activado o no. En navegadores y apps hechas con tecnologías web, UnTangle activa su compatibilidad con accesibilidad para que informen de sus campos, lo que consume algo más de energía.",
+        orderLabel: "Cambiar a",
+        orderPrevious: "Seleccionar fuente de entrada anterior",
+        orderNext: "Seleccionar la siguiente fuente del menú Teclado",
+        orderCaption: "La anterior alterna entre las dos fuentes usadas por última vez, como Control-Espacio en macOS, aunque haya tres o más. La siguiente recorre la lista en el orden del menú Teclado.",
         manageButton: "Configurar…"
     )
 
@@ -318,6 +351,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS po každom prepnutí zobrazí zdroj vstupu pri textovom kurzore. Ak ho vypnete, prepínanie môže pôsobiť rýchlejšie. Ide o nastavenie macOS: prejaví sa po odhlásení a opätovnom prihlásení a zostane tak aj bez UnTangle.",
         focusBadgeToggle: "Zobraziť jazyk pri prechode do textového poľa",
         focusBadgeCaption: "Vždy, keď kliknete do textového poľa alebo doň prejdete klávesom Tab, UnTangle zobrazí aktuálny zdroj vstupu pri kurzore, aby bol jazyk vidieť ešte pred písaním. Funguje so zapnutým aj vypnutým indikátorom macOS. V prehliadačoch a aplikáciách postavených na webových technológiách UnTangle zapne ich podporu prístupnosti, aby ohlasovali svoje polia, čo spotrebuje o niečo viac energie.",
+        orderLabel: "Prepnúť na",
+        orderPrevious: "Predchádzajúci vstupný zdroj",
+        orderNext: "Ďalší zdroj vo vstupnom menu",
+        orderCaption: "Predchádzajúci prepína medzi dvoma naposledy použitými zdrojmi ako Control-medzerník v macOS, aj keď ich je tri a viac. Ďalší prechádza zoznam v poradí vstupného menu.",
         manageButton: "Nastaviť…"
     )
 
@@ -355,6 +392,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS zeigt nach jedem Wechsel die Eingabequelle neben dem Textcursor. Ist sie aus, kann sich der Wechsel schneller anfühlen. Dies ist eine macOS-Einstellung: Sie wirkt nach dem Ab- und erneuten Anmelden und bleibt auch ohne UnTangle bestehen.",
         focusBadgeToggle: "Sprache beim Wechsel in ein Textfeld zeigen",
         focusBadgeCaption: "Bei jedem Klick in ein Textfeld oder Wechsel dorthin mit Tab zeigt UnTangle die aktuelle Eingabequelle neben dem Cursor, sodass die Sprache schon vor dem Tippen zu sehen ist. Das funktioniert mit und ohne die macOS-Sprachanzeige. In Browsern und Apps auf Basis von Webtechnologien schaltet UnTangle deren Bedienungshilfen-Unterstützung ein, damit sie ihre Felder melden; das kostet sie etwas mehr Energie.",
+        orderLabel: "Wechseln zu",
+        orderPrevious: "Die vorherige Eingabequelle auswählen",
+        orderNext: "Nächste Quelle aus dem Eingabemenü auswählen",
+        orderCaption: "Die vorherige wechselt zwischen den zwei zuletzt verwendeten Quellen hin und her, wie Control-Leertaste in macOS, auch bei drei oder mehr. Die nächste geht die Liste in der Reihenfolge des Eingabemenüs durch.",
         manageButton: "Einrichten…"
     )
 
@@ -392,6 +433,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS affiche la source d’entrée près du curseur de texte après chaque changement. Le désactiver peut rendre le changement plus vif. C’est un réglage de macOS\u{00A0}: il prend effet après une déconnexion puis une reconnexion, et reste ainsi même sans UnTangle.",
         focusBadgeToggle: "Afficher la langue en entrant dans un champ de texte",
         focusBadgeCaption: "À chaque clic dans un champ de texte ou passage vers l’un d’eux avec Tab, UnTangle affiche la source d’entrée actuelle près du curseur, pour voir la langue avant de taper. Cela fonctionne avec ou sans l’indicateur de macOS. Dans les navigateurs et les apps conçues avec des technologies web, UnTangle active leur prise en charge de l’accessibilité pour qu’elles signalent leurs champs, ce qui consomme un peu plus d’énergie.",
+        orderLabel: "Passer à",
+        orderPrevious: "Sélectionner la méthode de saisie précédente",
+        orderNext: "Sélectionner la méthode de saisie suivante",
+        orderCaption: "La précédente alterne entre les deux sources utilisées en dernier, comme Contrôle-Espace dans macOS, même avec trois sources ou plus. La suivante parcourt la liste dans l’ordre du menu de saisie.",
         manageButton: "Configurer…"
     )
 
@@ -429,6 +474,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS mostra la sorgente di input vicino al cursore di testo dopo ogni cambio. Disattivarlo può rendere il cambio più rapido. È un’impostazione di macOS: ha effetto dopo aver chiuso e riaperto la sessione e resta così anche senza UnTangle.",
         focusBadgeToggle: "Mostra la lingua quando entri in un campo di testo",
         focusBadgeCaption: "Ogni volta che fai clic in un campo di testo o ci arrivi con Tab, UnTangle mostra la sorgente di input attuale vicino al cursore, così vedi la lingua prima di scrivere. Funziona con l’indicatore di macOS attivo o no. Nei browser e nelle app realizzate con tecnologie web, UnTangle attiva il loro supporto all’accessibilità perché segnalino i propri campi, il che consuma un po’ più di energia.",
+        orderLabel: "Passa a",
+        orderPrevious: "Seleziona la sorgente di input precedente",
+        orderNext: "Seleziona la sorgente successiva nel menu Tastiera",
+        orderCaption: "La precedente passa avanti e indietro tra le due sorgenti usate per ultime, come Control-Spazio in macOS, anche con tre o più. La successiva scorre l’elenco nell’ordine del menu Tastiera.",
         manageButton: "Configura…"
     )
 
@@ -466,6 +515,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOSは切り替えるたびにテキストカーソルの横に入力ソースを表示します。オフにすると切り替えが速く感じられることがあります。これはmacOSの設定です。ログアウトして再ログインすると反映され、UnTangleがなくてもそのまま残ります。",
         focusBadgeToggle: "テキストフィールドに入ったときに言語を表示",
         focusBadgeCaption: "テキストフィールドをクリックしたりTabキーで移動したりするたびに、UnTangleが現在の入力ソースをカーソルの横に表示するので、入力する前に言語を確認できます。macOSのインジケータのオン・オフに関係なく動作します。ブラウザやWeb技術で作られたアプリでは、フィールドを通知させるためにUnTangleがアクセシビリティのサポートをオンにします。そのぶん消費エネルギーが少し増えます。",
+        orderLabel: "切り替え先",
+        orderPrevious: "前の入力ソースを選択",
+        orderNext: "入力メニューの次のソースを選択",
+        orderCaption: "「前」は、macOSのControl-スペースと同じように、最後に使った2つのソースを行き来します（3つ以上あっても同様）。「次」は入力メニューの順にリストを進みます。",
         manageButton: "設定…"
     )
 
@@ -503,6 +556,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "macOS는 전환할 때마다 텍스트 커서 옆에 입력 소스를 표시합니다. 끄면 전환이 더 빠르게 느껴질 수 있습니다. 이는 macOS 설정으로, 로그아웃 후 다시 로그인하면 적용되며 UnTangle이 없어도 그대로 유지됩니다.",
         focusBadgeToggle: "텍스트 필드에 들어가면 언어 보기",
         focusBadgeCaption: "텍스트 필드를 클릭하거나 Tab 키로 이동할 때마다 UnTangle이 현재 입력 소스를 커서 옆에 표시하므로 입력하기 전에 언어를 확인할 수 있습니다. macOS 표시기를 켜든 끄든 작동합니다. 브라우저와 웹 기술로 만든 앱에서는 필드를 알리도록 UnTangle이 손쉬운 사용 지원을 켜며, 이로 인해 에너지를 조금 더 사용합니다.",
+        orderLabel: "전환 대상",
+        orderPrevious: "이전 입력 소스 선택",
+        orderNext: "입력 메뉴에서 다음 소스 선택",
+        orderCaption: "이전은 macOS의 Control-스페이스처럼 마지막으로 사용한 두 소스 사이를 오갑니다. 소스가 세 개 이상이어도 마찬가지입니다. 다음은 입력 메뉴 순서대로 목록을 따라갑니다.",
         manageButton: "설정…"
     )
 
@@ -540,6 +597,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "Після кожного перемикання macOS показує джерело вводу біля текстового курсора. Якщо його вимкнути, перемикання може відчуватися швидшим. Це налаштування macOS: воно діє після виходу із системи й повторного входу та лишається таким навіть без UnTangle.",
         focusBadgeToggle: "Показувати мову під час переходу в текстове поле",
         focusBadgeCaption: "Щоразу, коли ви клацаєте в текстове поле або переходите в нього клавішею Tab, UnTangle показує поточне джерело вводу біля курсора, щоб мову було видно ще до набору. Працює незалежно від індикатора macOS. У браузерах і програмах на вебтехнологіях UnTangle вмикає їхню підтримку універсального доступу, щоб вони повідомляли про свої поля; це трохи збільшує їхні витрати енергії.",
+        orderLabel: "Перемикати на",
+        orderPrevious: "Вибрати попереднє джерело вводу",
+        orderNext: "Вибрати наступне джерело в меню вводу",
+        orderCaption: "Попереднє перемикає між двома останніми джерелами, як Control-Пробіл у macOS, навіть якщо їх три й більше. Наступне йде списком у порядку меню вводу.",
         manageButton: "Налаштувати…"
     )
 
@@ -577,6 +638,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "每次切换后，macOS 都会在文本光标旁显示输入法。关闭后切换可能感觉更快。这是 macOS 设置：注销并重新登录后生效，即使没有 UnTangle 也会保持。",
         focusBadgeToggle: "进入文本框时显示语言",
         focusBadgeCaption: "每次点按进入文本框或用 Tab 键移到文本框时，UnTangle 都会在光标旁显示当前输入法，让你在输入前就能看到语言。无论 macOS 指示器是否打开都能使用。在浏览器和基于网页技术的应用中，UnTangle 会打开它们的辅助功能支持，让它们报告文本框，这会让它们多耗一些电。",
+        orderLabel: "切换到",
+        orderPrevious: "选择上一个输入法",
+        orderNext: "选择“输入法”菜单中的下一个输入法",
+        orderCaption: "“上一个”会像 macOS 中的 Control-空格键一样在最近使用的两个输入法之间来回切换，即使有三个或更多也是如此。“下一个”按“输入法”菜单的顺序依次切换。",
         manageButton: "设置…"
     )
 
@@ -614,6 +679,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "每次切換後，macOS 都會在文字游標旁顯示輸入法。關閉後切換可能感覺更快。這是 macOS 設定：登出並重新登入後生效，即使沒有 UnTangle 也會保持。",
         focusBadgeToggle: "進入文字欄位時顯示語言",
         focusBadgeCaption: "每次點按進入文字欄位或用 Tab 鍵移到文字欄位時，UnTangle 都會在游標旁顯示目前的輸入法，讓你在輸入前就能看到語言。無論 macOS 指示器是否開啟都能使用。在瀏覽器和以網頁技術製作的 App 中，UnTangle 會開啟它們的輔助使用支援，讓它們回報文字欄位，這會讓它們多耗一些電。",
+        orderLabel: "切換到",
+        orderPrevious: "選擇上一個輸入方式",
+        orderNext: "在輸入選單中選擇下一個方式",
+        orderCaption: "「上一個」會像 macOS 中的 Control-空白鍵一樣，在最近使用的兩個輸入方式之間來回切換，即使有三個以上也是如此。「下一個」依輸入選單的順序依次切換。",
         manageButton: "設定…"
     )
 
@@ -651,6 +720,10 @@ extension InstantInputSwitchStrings {
         indicatorCaption: "每次切換後，macOS 都會喺文字游標旁邊顯示輸入法。關咗之後切換可能會覺得快啲。呢個係 macOS 設定：登出再登入後先生效，就算冇 UnTangle 都會保持。",
         focusBadgeToggle: "入到文字欄位時顯示語言",
         focusBadgeCaption: "每次撳入文字欄位或者用 Tab 鍵移去文字欄位時，UnTangle 都會喺游標旁邊顯示而家嘅輸入法，等你打字之前就睇到係咩語言。無論 macOS 指示器開定關都用得。喺瀏覽器同用網頁技術整嘅 App 入面，UnTangle 會開咗佢哋嘅輔助使用支援，等佢哋回報文字欄位，咁會令佢哋多耗少少電。",
+        orderLabel: "切換去",
+        orderPrevious: "選擇上次的輸入方式",
+        orderNext: "在輸入選單中選擇下一個方式",
+        orderCaption: "「上次」會好似 macOS 嘅 Control-空白鍵咁，喺最近用過嘅兩個輸入方式之間來回切換，就算有三個或以上都係咁。「下一個」會跟輸入選單嘅次序逐個切換。",
         manageButton: "設定…"
     )
 }
