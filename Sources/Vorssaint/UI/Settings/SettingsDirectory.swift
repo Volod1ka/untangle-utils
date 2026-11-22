@@ -605,6 +605,14 @@ enum SettingsDirectory {
                                       keywords: SuperKeySource.allCases.map {
                                           FeatureStrings.superKey(language).sourceLabel($0)
                                       }),
+                SettingsDirectoryItem(page: .instantInputSwitch,
+                                      title: FeatureStrings.instantInputSwitch(language).pageTitle,
+                                      icon: "globe",
+                                      keywords: ["input source", "keyboard layout", "language",
+                                                 "Control-Space", "Fn", "Globe"]
+                                        + InstantInputSwitchTrigger.allCases.map {
+                                            FeatureStrings.instantInputSwitch(language).triggerLabel($0)
+                                        }),
                 SettingsDirectoryItem(page: .textSnippets,
                                       title: FeatureStrings.snippets(language).pageTitle,
                                       icon: "text.append",

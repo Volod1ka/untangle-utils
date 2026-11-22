@@ -128,6 +128,7 @@ enum SuperKeyTapContract {
         var lockWritable = true
         var soloWrites: [Bool] = []
         static var inputSourceChanges = 0
+        let inputGuard = InputSourceGuard(marker: OwnKeyEvent.superKeyInputGuardMarker, holdsClicks: false)
         func AXIsProcessTrusted() -> Bool { true }
         func syncWithPreferences() {}
         func clearEventTapThread() -> Bool { false }
@@ -196,7 +197,7 @@ enum SuperKeyTapContract {
         // Production receives keys on its dedicated tap thread.
         func runOnMainIfNeeded(_ work: @escaping () -> Void) { Queue.main.async(execute: work) }
         static func postKey(_ code: CGKeyCode) -> Bool { true }
-        static func selectNextInputSource() { inputSourceChanges += 1 }
+        func switchInputSource(at timestamp: UInt64) { State.inputSourceChanges += 1 }
     }
     class RecordingState {
         typealias DispatchQueue = Queue

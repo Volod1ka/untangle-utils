@@ -1111,7 +1111,12 @@ enum CommandBarFeatureTests {
         let superKeySource = (try? String(
             contentsOfFile: "Sources/Vorssaint/Services/SuperKey/SuperKeyService.swift",
             encoding: .utf8)) ?? ""
-        suite.expect(superKeySource.contains("InputSourceSelection.selectableInputSources()"),
+        let inputSourceGuardSource = (try? String(
+            contentsOfFile: "Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuard.swift",
+            encoding: .utf8)) ?? ""
+        suite.expect(superKeySource.contains("InputSourceSwitcher.selectNext()")
+                && !superKeySource.contains("TISSelectInputSource(")
+                && inputSourceGuardSource.contains("InputSourceSelection.selectableInputSources()"),
                "the Super key cycle shares the TIS plumbing instead of its own copy")
 
         // MARK: The Mac's own Settings panes

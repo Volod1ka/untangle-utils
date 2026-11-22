@@ -1307,7 +1307,8 @@ def main():
                                    "    private func setMappingFailure(",
                                    "    private func confirmMapping(", "    private func mappingDidFinish(",
                                    "    private func waitForKeyboard(", "    private func cancelKeyboardWait()",
-                                   "    private func handle(", "    private static func classify(",
+                                   "    private func handle(", "    private func handleSuperKey(",
+                                   "    private static func classify(",
                                    "    private func repairMappingIfStale(", "    private func clearUnmappedCapsLock(",
                                    "    private func performSoloAction(", "    private func toggleCapsLock(",
                                    "    private func finishStart()"])

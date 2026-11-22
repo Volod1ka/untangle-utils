@@ -180,6 +180,7 @@ struct MetricsTests {
             ("keyboard", {
                 KeyboardFeatureTests.run(suite)
                 AssistiveKeyboardTests.run(suite)
+                InstantInputSwitchTests.run(suite)
                 ScreenshotToolShortcutTests.run(suite)
             }),
             ("storage", {
