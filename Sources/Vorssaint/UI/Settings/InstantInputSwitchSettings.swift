@@ -9,6 +9,7 @@ struct InstantInputSwitchSettings: View {
     @ObservedObject private var permissions = Permissions.shared
     @ObservedObject private var service = InstantInputSwitchService.shared
     @AppStorage(DefaultsKey.instantInputSwitchEnabled) private var enabled = false
+    @AppStorage(DefaultsKey.instantInputSwitchFocusBadge) private var focusBadge = false
     @AppStorage(DefaultsKey.instantInputSwitchTrigger) private var triggerRaw =
         InstantInputSwitchTrigger.controlSpace.rawValue
     @AppStorage(DefaultsKey.inputSourceGuardEnabled) private var guardEnabled = true
@@ -18,12 +19,20 @@ struct InstantInputSwitchSettings: View {
         InputSourceGuardSupport.defaultMilliseconds
     @AppStorage(DefaultsKey.superKeyEnabled) private var superKeyEnabled = false
     @AppStorage(DefaultsKey.superKeySource) private var superKeySourceRaw = SuperKeySource.capsLock.rawValue
+    @AppStorage(DefaultsKey.superKeySoloAction) private var superKeySoloRaw = SuperKeySoloAction.none.rawValue
 
     /// Read from macOS on the way in, since it can change outside the app.
     @State private var languageIndicatorShown = true
 
     private var text: InstantInputSwitchStrings { FeatureStrings.instantInputSwitch(l10n.language) }
     private var trigger: InstantInputSwitchTrigger { InstantInputSwitchTrigger.sanitized(triggerRaw) }
+
+    /// The Super key's tap switches sources through the same guard, so its
+    /// settings stay open for it with this feature's own switch off.
+    private var superKeySwitchesSources: Bool {
+        AppFeature.superKey.isAvailable && superKeyEnabled
+            && SuperKeySoloAction.sanitized(superKeySoloRaw) == .inputSource
+    }
 
     private var shadowedBySuperKey: Bool {
         AppFeature.superKey.isAvailable && superKeyEnabled
@@ -95,9 +104,10 @@ struct InstantInputSwitchSettings: View {
                 }
                 .disabled(!guardEnabled)
             }
-            .disabled(!enabled)
+            .disabled(!enabled && !superKeySwitchesSources)
 
-            // A macOS setting of its own: it works with the feature off too.
+            // A macOS setting of its own, and UnTangle's badge beside it: both
+            // work with the feature off, and neither depends on the other.
             Section(text.indicatorSection) {
                 Toggle(text.indicatorToggle, isOn: Binding(
                     get: { languageIndicatorShown },
@@ -108,9 +118,19 @@ struct InstantInputSwitchSettings: View {
                 Text(text.indicatorCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle(text.focusBadgeToggle, isOn: $focusBadge)
+                    .onChange(of: focusBadge) { _, value in
+                        FocusLanguageBadgeService.shared.syncWithPreferences()
+                        guard value, !permissions.accessibility else { return }
+                        permissions.requestAccessibility()
+                        permissions.openAccessibilitySettings()
+                    }
+                Text(text.focusBadgeCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
-            if enabled, !permissions.accessibility {
+            if enabled || focusBadge, !permissions.accessibility {
                 Section(l10n.s.permissionRequired) {
                     PermissionRow(kind: .accessibility)
                 }

@@ -106,6 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // Service Management can stall while answering (issue #2539).
         LaunchAtLogin.repairAtStartup()
 
+        // Switch back apps a run that ended without cleaning up (a crash, a
+        // force quit) left in an assistive mode for the language badge.
+        FocusLanguageBadgeRecovery.restoreAtStartup()
+
         // Recover displays before other services read the screen layout. The
         // saved list can outlive an uninstall, so it alone decides whether
         // this launch needs the brightness service for recovery.
@@ -345,6 +349,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         // Takes the Super key mapping back out before the process goes away.
         SuperKeyService.shared.suspend()
         InstantInputSwitchService.shared.suspend()
+        // Waits, a bounded time, until apps the language badge switched into an
+        // assistive mode are switched back; the next launch finishes the rest.
+        if AppFeature.instantInputSwitch.isAvailable || FocusLanguageBadgeRecovery.hasPendingEntries() {
+            FocusLanguageBadgeService.shared.suspend(waitForCleanup: true)
+        }
         // Dock's app and window switcher hotkeys persist after quit.
         AppSwitcher.shared.suspend()
         MouseButtonShortcutService.shared.suspend()

@@ -98,6 +98,8 @@ final class SuperKeyService: ObservableObject {
     /// the mapping, but a physical or externally mapped F18 is free until then.
     private var capturesMappedKeys = false
     private var soloAction: SuperKeySoloAction = .none
+    /// Which way the solo tap switches the input source. Protected by stateLock.
+    private var inputSourceOrder = InputSourceSwitchOrder.next
     private var eventModifiers = SuperKeySupport.defaultModifiers
     private var eventSource = SuperKeySource.capsLock
     // Protected by stateLock. Track event order across the hop from the tap
@@ -160,9 +162,13 @@ final class SuperKeyService: ObservableObject {
         let source = SuperKeySource.sanitized(
             defaults.string(forKey: DefaultsKey.superKeySource)
         )
+        let order = InputSourceSwitchOrder.sanitized(
+            defaults.string(forKey: DefaultsKey.superKeyInputSourceOrder)
+        )
         let sourceChanged = self.source != source
         stateLock.withLock {
             soloAction = action
+            inputSourceOrder = order
             eventModifiers = modifiers
             eventSource = source
         }
@@ -172,6 +178,9 @@ final class SuperKeyService: ObservableObject {
             && defaults.bool(forKey: DefaultsKey.superKeyEnabled)
             && SessionActivity.shared.isActive
         syncExceptionMonitoring(enabled: enabled && AXIsProcessTrusted())
+        // "Previous" needs the shared history of recently used sources.
+        let wantsRecents = enabled && action == .inputSource && order == .previous
+        runOnMainIfNeeded { InputSourceRecentsTracker.shared.hold(wantsRecents, for: "superKey") }
         guard enabled, !isPausedForApplication else {
             stop()
             return
@@ -196,6 +205,7 @@ final class SuperKeyService: ObservableObject {
     /// away, and a mapping left behind would leave its source doing nothing.
     func suspend() {
         syncExceptionMonitoring(enabled: false)
+        runOnMainIfNeeded { InputSourceRecentsTracker.shared.hold(false, for: "superKey") }
         stop(synchronously: true)
     }
 
@@ -1001,10 +1011,16 @@ final class SuperKeyService: ObservableObject {
     private func switchInputSource(at timestamp: UInt64) {
         // Keys held for the previous source go out before it changes again.
         inputGuard.flush(endingWindow: true)
-        guard let selection = InputSourceSwitcher.selectNext(),
+        let order: InputSourceSwitcher.Order = stateLock.withLock({ inputSourceOrder }) == .previous
+            ? .previous(recentIDs: { InputSourceRecentsTracker.shared.ids })
+            : .next
+        guard let selection = InputSourceSwitcher.select(order),
               // A stop that ran while main selected must not inherit a window.
               !lifecycleLock.withLock({ shouldStopTapThread })
         else { return }
+        // Recorded at once: a second tap before macOS's notice arrives must
+        // already go back from the new source.
+        InputSourceRecentsTracker.shared.switched(from: selection.previousID, to: selection.id)
         // The guard is BETA and its controls live on Instant input switch's
         // page, so the Super key uses it only while that feature is installed.
         var settings = InputSourceGuard.Settings.current()

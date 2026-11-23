@@ -26,8 +26,6 @@ enum InputSourceSwitcher {
         var previousID: String? = nil
     }
 
-    static func selectNext() -> Selection? { select(.next) }
-
     /// This process's last switch, to see through a stale report of the
     /// source it just left. Main thread only, like every TIS call here.
     private static var lastSwitch: InputSourceGuardSupport.LastSwitch?
@@ -89,6 +87,103 @@ enum InputSourceSwitcher {
         }
         return Thread.isMainThread ? select() : DispatchQueue.main.sync(execute: select)
     }
+}
+
+/// Which way a switch goes from the current source.
+enum InputSourceSwitchOrder: String, CaseIterable, Identifiable {
+    /// Back to the source used before, like macOS's Control-Space: with
+    /// three or more sources it goes back and forth between the last two.
+    case previous
+    /// On through the list, the way the Input menu orders it.
+    case next
+
+    var id: String { rawValue }
+
+    static func sanitized(_ raw: String?) -> InputSourceSwitchOrder {
+        raw.flatMap(InputSourceSwitchOrder.init(rawValue:)) ?? .next
+    }
+}
+
+/// The recently used sources behind "previous", shared by every tap that
+/// switches that way (Instant input switch's Control-Space, the Super key).
+/// It follows macOS's change notice while anyone holds it; whoever starts
+/// holding it after nobody did gets macOS's own history first, since macOS
+/// kept counting while nothing here was listening.
+final class InputSourceRecentsTracker {
+    static let shared = InputSourceRecentsTracker()
+
+    private let lock = NSLock()
+    private var recents = InputSourceRecents()
+    // Main thread only.
+    private var holders: Set<String> = []
+    private var observer: NSObjectProtocol?
+
+    private init() {}
+
+    /// Main thread. Idempotent for one holder.
+    func hold(_ holding: Bool, for holder: String) {
+        if holding {
+            let wasIdle = holders.isEmpty
+            holders.insert(holder)
+            if wasIdle {
+                seedFromSystem()
+                observer = DistributedNotificationCenter.default().addObserver(
+                    forName: NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
+                    object: nil, queue: .main
+                ) { [weak self] _ in self?.noteCurrent() }
+            }
+            noteCurrent()
+        } else if holders.remove(holder) != nil, holders.isEmpty, let observer {
+            DistributedNotificationCenter.default().removeObserver(observer)
+            self.observer = nil
+        }
+    }
+
+    /// Any thread: the history, most recent first.
+    var ids: [String] { lock.withLock { recents.ids } }
+
+    /// Any thread: a switch made here, recorded at once, so a second press
+    /// before macOS's notice arrives already goes back from the new source.
+    func switched(from previous: String?, to id: String) {
+        lock.withLock { recents.switched(from: previous, to: id) }
+    }
+
+    /// Every change counts, the Input menu's included.
+    private func noteCurrent() {
+        guard let current = InputSourceSelection.currentSourceID() else { return }
+        lock.withLock { recents.noticed(current) }
+    }
+
+    private func seedFromSystem() {
+        let domain = "com.apple.HIToolbox" as CFString
+        CFPreferencesAppSynchronize(domain)
+        let entries = CFPreferencesCopyAppValue("AppleInputSourceHistory" as CFString, domain)
+            as? [[String: Any]] ?? []
+        let sources = InputSourceSelection.selectableInputSources()
+        let enabled = sources.compactMap {
+            InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID)
+        }
+        var layoutNames: [String: String] = [:]
+        if let nameKey = Self.keyLayoutNameProperty {
+            for source in sources {
+                guard let id = InputSourceSelection.inputSourceString(source, property: kTISPropertyInputSourceID),
+                      let name = InputSourceSelection.inputSourceString(source, property: nameKey) else { continue }
+                layoutNames[name] = id
+            }
+        }
+        let history = InputSourceGuardSupport.historyIDs(entries, enabledIDs: enabled, layoutNames: layoutNames)
+        lock.withLock { recents.seed(history) }
+    }
+
+    /// The layout's own name, the one macOS's history stores (U.S. for
+    /// `com.apple.keylayout.US`). HIToolbox exports the key without declaring
+    /// it, so it is looked up by name; without it the id is matched alone.
+    private static let keyLayoutNameProperty: CFString? = {
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "kTISPropertyKeyLayoutName") else {
+            return nil
+        }
+        return symbol.assumingMemoryBound(to: CFString.self).pointee
+    }()
 }
 
 /// Keeps the keys typed right after an input source switch in the new layout

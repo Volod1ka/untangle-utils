@@ -61,16 +61,21 @@ enum InputSourceGuardSupport {
     /// The sources in macOS's own history (`AppleInputSourceHistory` in
     /// com.apple.HIToolbox, most recent first) as enabled source ids, so
     /// "previous" is right from the first press and after a pause. A layout
-    /// is stored by name, an input method mode by its id, a method without
-    /// modes by its bundle id.
-    static func historyIDs(_ entries: [[String: Any]], enabledIDs: [String]) -> [String] {
+    /// is stored by its layout name, an input method mode by its id, a method
+    /// without modes by its bundle id. A layout name need not match the id
+    /// (U.S. is `com.apple.keylayout.US`), so
+    /// `layoutNames`, each enabled layout's own name → its id as TIS reports
+    /// them, is asked first, then the id itself.
+    static func historyIDs(_ entries: [[String: Any]], enabledIDs: [String],
+                           layoutNames: [String: String] = [:]) -> [String] {
         var ids: [String] = []
         for entry in entries {
             let id: String?
             if let mode = entry["Input Mode"] as? String {
                 id = enabledIDs.contains(mode) ? mode : nil
             } else if let name = entry["KeyboardLayout Name"] as? String, !name.isEmpty {
-                id = enabledIDs.first { $0 == "com.apple.keylayout.\(name)" }
+                id = layoutNames[name].flatMap { enabledIDs.contains($0) ? $0 : nil }
+                    ?? enabledIDs.first { $0 == "com.apple.keylayout.\(name)" }
                     ?? enabledIDs.first { $0.hasSuffix(".\(name)") }
             } else if let bundle = entry["Bundle ID"] as? String {
                 id = enabledIDs.contains(bundle) ? bundle : nil

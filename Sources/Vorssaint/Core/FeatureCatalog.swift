@@ -303,6 +303,17 @@ extension AppFeature {
         }
     }
 
+    /// Switches that put a feature to work without being its main switch, so
+    /// they count when asking which features use a permission, but are left
+    /// out of `enabledKeys`: a Command Bar row and the first install flip only
+    /// the main switch.
+    var secondaryEnabledKeys: [String] {
+        switch self {
+        case .instantInputSwitch: return [DefaultsKey.instantInputSwitchFocusBadge]
+        default: return []
+        }
+    }
+
     /// Turn on the feature's main behavior at install time. Features with
     /// several independent controls start with one useful behavior, except
     /// audio priority, whose output and input controls work together. The
@@ -517,7 +528,8 @@ extension AppFeature {
         allCases.filter { feature in
             guard feature.permissions.contains(permission), isAvailable(feature) else { return false }
             let keys = feature.enabledKeys
-            guard keys.isEmpty || keys.contains(where: boolFor) else { return false }
+            guard keys.isEmpty || (keys + feature.secondaryEnabledKeys).contains(where: boolFor)
+            else { return false }
             switch (feature, permission) {
             case (.notch, .automationPlayback):
                 return !(stringFor(DefaultsKey.notchHiddenModules) ?? "").split(separator: ",").contains("music")

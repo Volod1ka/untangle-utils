@@ -86,6 +86,7 @@ enum DefaultsKey {
     static let superKeySource = "superKeySource"           // SuperKeySource raw value
     static let superKeyModifiers = "superKeyModifiers"     // GlobalShortcutModifiers storage tokens
     static let superKeySoloAction = "superKeySoloAction"  // SuperKeySoloAction raw value
+    static let superKeyInputSourceOrder = "superKeyInputSourceOrder"  // InputSourceSwitchOrder raw value
     // Machine state, never exported: whether the keyboard mapping is in place
     // and which source to take back after a crash.
     static let superKeyMappingApplied = "superKeyMappingApplied"
@@ -93,6 +94,12 @@ enum DefaultsKey {
     // Instant input switch (BETA): its own trigger.
     static let instantInputSwitchEnabled = "instantInputSwitchEnabled"
     static let instantInputSwitchTrigger = "instantInputSwitchTrigger"       // InstantInputSwitchTrigger raw value
+    // Its language badge when a text field takes the focus, with a switch of
+    // its own: it works with the switch above off.
+    static let instantInputSwitchFocusBadge = "instantInputSwitchFocusBadge"
+    // Machine state, never exported: apps the badge switched into an
+    // assistive mode, to switch back after a run that could not.
+    static let instantInputSwitchFocusBadgeAssisted = "instantInputSwitchFocusBadgeAssisted"
     // The first-letter guard after a switch, shared by Instant input switch
     // and the Super key's input source tap.
     static let inputSourceGuardEnabled = "inputSourceGuardEnabled"
@@ -1312,8 +1319,10 @@ enum Defaults {
         DefaultsKey.superKeySource: SuperKeySource.capsLock.rawValue,
         DefaultsKey.superKeyModifiers: SuperKeySupport.defaultModifierStorageValue,
         DefaultsKey.superKeySoloAction: SuperKeySoloAction.none.rawValue,
+        DefaultsKey.superKeyInputSourceOrder: InputSourceSwitchOrder.next.rawValue,
         DefaultsKey.instantInputSwitchEnabled: false,
         DefaultsKey.instantInputSwitchTrigger: InstantInputSwitchTrigger.controlSpace.rawValue,
+        DefaultsKey.instantInputSwitchFocusBadge: false,
         DefaultsKey.inputSourceGuardEnabled: true,
         DefaultsKey.inputSourceGuardStrategy: InputSourceGuardStrategy.rewrite.rawValue,
         DefaultsKey.inputSourceGuardMilliseconds: InputSourceGuardSupport.defaultMilliseconds,
