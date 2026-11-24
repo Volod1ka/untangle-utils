@@ -23,6 +23,13 @@ enum ActivationHandoff {
         CFAbsoluteTimeGetCurrent() - lastSelfActivation < selfActivationWindow
     }
 
+    /// Activates Vorssaint for a moment that `yield(to:)` ends, marked like
+    /// the yield's own so the switcher's history leaves it out.
+    static func activateBriefly() {
+        lastSelfActivation = CFAbsoluteTimeGetCurrent()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     static func yield(to app: NSRunningApplication) {
         lastSelfActivation = CFAbsoluteTimeGetCurrent()
         NSApp.activate(ignoringOtherApps: true)

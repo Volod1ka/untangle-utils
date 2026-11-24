@@ -1014,10 +1014,14 @@ final class SuperKeyService: ObservableObject {
         let order: InputSourceSwitcher.Order = stateLock.withLock({ inputSourceOrder }) == .previous
             ? .previous(recentIDs: { InputSourceRecentsTracker.shared.ids })
             : .next
-        guard let selection = InputSourceSwitcher.select(order),
-              // A stop that ran while main selected must not inherit a window.
-              !lifecycleLock.withLock({ shouldStopTapThread })
-        else { return }
+        guard let selection = InputSourceSwitcher.select(order,
+                                                          nudging: InputSourceFocusNudge.isEnabled) else { return }
+        // A stop that ran while main selected must not inherit a window; the
+        // app a nudge took the activation from still gets it back.
+        guard !lifecycleLock.withLock({ shouldStopTapThread }) else {
+            if selection.nudgeLed { DispatchQueue.main.async { InputSourceFocusNudge.release(to: selection.id) } }
+            return
+        }
         // Recorded at once: a second tap before macOS's notice arrives must
         // already go back from the new source.
         InputSourceRecentsTracker.shared.switched(from: selection.previousID, to: selection.id)
@@ -1025,7 +1029,11 @@ final class SuperKeyService: ObservableObject {
         // page, so the Super key uses it only while that feature is installed.
         var settings = InputSourceGuard.Settings.current()
         settings.enabled = settings.enabled && AppFeature.instantInputSwitch.isAvailable
+        // A switch that left an input method brought UnTangle in front: keys
+        // typed until the app is back are held and replayed, guard on or not.
+        if selection.nudgeLed { settings = settings.holdingThroughNudge() }
         inputGuard.arm(for: selection, at: timestamp, settings: settings)
+        if selection.nudgeLed { DispatchQueue.main.async { InputSourceFocusNudge.release(to: selection.id) } }
     }
 
     // MARK: - Caps Lock itself

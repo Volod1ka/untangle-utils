@@ -106,6 +106,10 @@ enum DefaultsKey {
     static let inputSourceGuardEnabled = "inputSourceGuardEnabled"
     static let inputSourceGuardStrategy = "inputSourceGuardStrategy"         // InputSourceGuardStrategy raw value
     static let inputSourceGuardMilliseconds = "inputSourceGuardMilliseconds"
+    // EXPERIMENT, unregistered and never exported: whether a switch that
+    // leaves an input method briefly brings UnTangle in front
+    // (InputSourceFocusNudge.Mode raw value).
+    static let inputSourceFocusNudge = "inputSourceFocusNudge"
     // One list of bundle ids per mouse feature: apps it leaves alone (issue #358).
     static let smoothScrollExceptions = "smoothScrollExceptions"
     static let linearScrollExceptions = "linearScrollExceptions"

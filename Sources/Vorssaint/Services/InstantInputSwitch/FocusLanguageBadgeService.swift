@@ -68,6 +68,8 @@ final class FocusLanguageBadgeService {
 
     // Main thread only.
     private var running = false
+    /// The app last seen coming to the front.
+    private var frontPID: pid_t = 0
     /// Bumped on every start and stop, so work queued for an earlier run is
     /// dropped instead of showing a badge after the switch went off.
     private var epoch: UInt = 0
@@ -126,8 +128,16 @@ final class FocusLanguageBadgeService {
         activationToken = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] note in
-            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-            self?.watch(app.processIdentifier, announce: true)
+            guard let self,
+                  let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            let pid = app.processIdentifier
+            // A hand-off (the focus nudge of a switch out of an input method)
+            // brings UnTangle in front for a moment and goes back to the app
+            // that was there: the focus never really moved, and the badge
+            // that switch showed stays.
+            if ActivationHandoff.isHandingOff, pid == getpid() || pid == self.frontPID { return }
+            self.frontPID = pid
+            self.watch(pid, announce: true)
         }
         terminationToken = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main
@@ -145,6 +155,7 @@ final class FocusLanguageBadgeService {
         // The app in front when the switch goes on is usually UnTangle's own
         // Settings; whatever it is, nothing new took the focus yet.
         if let front = NSWorkspace.shared.frontmostApplication {
+            frontPID = front.processIdentifier
             watch(front.processIdentifier, announce: false)
         }
     }

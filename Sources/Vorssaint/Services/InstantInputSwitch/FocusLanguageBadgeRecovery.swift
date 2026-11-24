@@ -49,16 +49,28 @@ enum FocusLanguageBadgeRecovery {
         if kept.count != entries.count { save(kept) }
     }
 
-    /// Switches every recorded mode back off in the process it was set on,
-    /// then clears the record. A pid now held by another process is left
-    /// alone.
+    /// Switches every recorded mode back off in the process it was set on.
+    /// An entry leaves the record once its app is back, has quit, or its pid
+    /// belongs to another process now; one whose app could not be switched
+    /// back (busy past the timeout) stays for the next try. Without
+    /// Accessibility nothing can be switched back, so the record is kept
+    /// whole: it is the only way back for those apps.
     static func restorePending() {
-        for entry in load() where entry.isSameProcess(launchedAt: launchTime(of: entry.pid)) {
+        guard AXIsProcessTrusted() else { return }
+        let left = load().filter { entry in
+            guard entry.isSameProcess(launchedAt: launchTime(of: entry.pid)) else { return false }
             let application = AXUIElementCreateApplication(entry.pid)
             AXUIElementSetMessagingTimeout(application, messagingTimeout)
-            _ = AXUIElementSetAttributeValue(application, attribute(for: entry.mode), kCFBooleanFalse)
+            let attribute = attribute(for: entry.mode)
+            _ = AXUIElementSetAttributeValue(application, attribute, kCFBooleanFalse)
+            // Setting reports cannotComplete even when it takes effect, so
+            // only the read-back counts; an app that cannot say is taken as
+            // done rather than retried forever.
+            var value: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(application, attribute, &value) == .success else { return false }
+            return (value as? Bool) == true
         }
-        save([])
+        save(left)
     }
 
     static func attribute(for mode: FocusLanguageBadgeSupport.AssistedApp.Mode) -> CFString {

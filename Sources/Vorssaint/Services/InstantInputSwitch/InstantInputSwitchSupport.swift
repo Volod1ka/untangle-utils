@@ -101,6 +101,25 @@ enum InstantInputSwitchSupport {
         }
     }
 
+    /// Whether the Super key's own key (F18 once its mapping is in) is down,
+    /// as this tap sees it. This tap runs ahead of the Super key's, and while
+    /// the first-letter guard holds that press the Super key has not heard of
+    /// it yet: a letter pressed meanwhile belongs to a chord, and giving it
+    /// the new layout's text could turn ⌘K into ⌘Л for an app that matches
+    /// shortcuts by character.
+    struct SuperKeyPress: Equatable {
+        private(set) var isDown = false
+
+        mutating func note(keyCode: Int64, down: Bool) {
+            guard keyCode == SuperKeySupport.triggerKeyCode else { return }
+            isDown = down
+        }
+
+        /// A press whose release this tap may never see (the tap was off, or
+        /// the Super key let go of its key meanwhile) is forgotten.
+        mutating func reset() { isDown = false }
+    }
+
     /// A modifier pressed and released with nothing else in between, quickly.
     /// Anything else pressed meanwhile (a key, another modifier, a click)
     /// makes it a chord, which must keep doing whatever it already does.

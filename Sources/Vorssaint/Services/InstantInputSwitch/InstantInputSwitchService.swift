@@ -46,6 +46,7 @@ final class InstantInputSwitchService: ObservableObject {
     private let stateLock = NSLock()
     private var config = Config()
     private var soloTap = InstantInputSwitchSupport.SoloTap()
+    private var superKeyPress = InstantInputSwitchSupport.SuperKeyPress()
     private var swallowingSpaceUp = false
     /// When the last switch began, to log how long macOS took to confirm it.
     private var switchedAtNanoseconds: UInt64 = 0
@@ -84,6 +85,7 @@ final class InstantInputSwitchService: ObservableObject {
         stateLock.withLock {
             config = next
             soloTap.reset()
+            superKeyPress.reset()
         }
 
         let shouldRun = SessionActivitySupport.tapShouldRun(featureWanted: next.enabled,
@@ -105,8 +107,6 @@ final class InstantInputSwitchService: ObservableObject {
     // MARK: - Watchers and the Control-Space take-over
 
     private func applyWatchers(running: Bool) {
-        // Control-Space's "previous" reads the shared history.
-        InputSourceRecentsTracker.shared.hold(running, for: Self.takeOverSource)
         if running {
             if inputSourceObserver == nil {
                 inputSourceObserver = DistributedNotificationCenter.default().addObserver(
@@ -205,7 +205,10 @@ final class InstantInputSwitchService: ObservableObject {
     }
 
     private func stop() {
-        stateLock.withLock { soloTap.reset() }
+        stateLock.withLock {
+            soloTap.reset()
+            superKeyPress.reset()
+        }
         let snapshot = lifecycleLock.withLock {
             () -> (runLoop: CFRunLoop?, tap: CFMachPort?, threadExists: Bool, generation: UInt) in
             shouldStopTapThread = true
@@ -263,6 +266,7 @@ final class InstantInputSwitchService: ObservableObject {
 
             stateLock.withLock {
                 soloTap.reset()
+                superKeyPress.reset()
                 swallowingSpaceUp = false
             }
             inputGuard.reset()
@@ -318,7 +322,10 @@ final class InstantInputSwitchService: ObservableObject {
             } else if currentTap != nil {
                 DispatchQueue.main.async { [weak self] in self?.syncWithPreferences() }
             }
-            stateLock.withLock { soloTap.reset() }
+            stateLock.withLock {
+                soloTap.reset()
+                superKeyPress.reset()
+            }
             return Unmanaged.passUnretained(event)
         }
         // This guard's own replayed copies, then snippets and other keys this
@@ -367,6 +374,7 @@ final class InstantInputSwitchService: ObservableObject {
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             let trigger = stateLock.withLock { () -> InstantInputSwitchTrigger in
                 soloTap.otherInput()
+                superKeyPress.note(keyCode: keyCode, down: true)
                 return config.trigger
             }
             if trigger == .controlSpace,
@@ -382,6 +390,7 @@ final class InstantInputSwitchService: ObservableObject {
         case .keyUp:
             let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
             let swallow = stateLock.withLock { () -> Bool in
+                superKeyPress.note(keyCode: keyCode, down: false)
                 guard swallowingSpaceUp, keyCode == InstantInputSwitchSupport.spaceKeyCode else { return false }
                 swallowingSpaceUp = false
                 return true
@@ -396,10 +405,12 @@ final class InstantInputSwitchService: ObservableObject {
 
     private func guarded(type: CGEventType, event: CGEvent, timestamp: UInt64) -> Unmanaged<CGEvent>? {
         // This tap sits ahead of the Super key's, so a Super key chord does
-        // not carry its modifiers yet: it is a shortcut all the same.
+        // not carry its modifiers yet: it is a shortcut all the same. Nor may
+        // the Super key know of a press this guard is still holding.
         let superKeyHeld = SuperKeyService.isEngaged && SuperKeyService.shared.isHeld
+        let superKeyPressed = SuperKeyService.isEngaged && stateLock.withLock { superKeyPress.isDown }
         return inputGuard.process(type: type, event: event, timestamp: timestamp,
-                                  rewriteAllowed: !superKeyHeld)
+                                  rewriteAllowed: !superKeyHeld && !superKeyPressed)
             ? Unmanaged.passUnretained(event) : nil
     }
 
@@ -410,24 +421,30 @@ final class InstantInputSwitchService: ObservableObject {
         // go out (stamped with its layout) before this one changes it again.
         inputGuard.flush(endingWindow: true)
         let started = Self.nowNanoseconds()
-        // Control-Space keeps its macOS meaning: back to the previous source.
-        // The other keys go on through the list.
-        let order: InputSourceSwitcher.Order = trigger == .controlSpace
-            ? .previous(recentIDs: { InputSourceRecentsTracker.shared.ids })
-            : .next
-        guard let selection = InputSourceSwitcher.select(order) else {
+        // Every key, Control-Space included, goes on through the list; going
+        // back to the previous source is the Super key's option.
+        guard let selection = InputSourceSwitcher.select(.next,
+                                                          nudging: InputSourceFocusNudge.isEnabled) else {
             Self.log.notice("trigger \(trigger.rawValue, privacy: .public): nothing to switch to")
             return
         }
         // A stop that ran while the main thread selected must not inherit a
         // window: its flush timer would land on a run loop that is going away.
-        guard !lifecycleLock.withLock({ shouldStopTapThread }) else { return }
+        // The app a nudge took the activation from still gets it back.
+        guard !lifecycleLock.withLock({ shouldStopTapThread }) else {
+            if selection.nudgeLed { DispatchQueue.main.async { InputSourceFocusNudge.release(to: selection.id) } }
+            return
+        }
         let selectMilliseconds = (Self.nowNanoseconds() - started) / 1_000_000
-        // Recorded at once: a second press before macOS's notice arrives must
-        // already go back from the new source.
+        // Recorded at once for the Super key's "previous": a press of it
+        // before macOS's notice arrives must already go back from here.
         InputSourceRecentsTracker.shared.switched(from: selection.previousID, to: selection.id)
-        let settings = InputSourceGuard.Settings.current()
+        // A switch that left an input method brought UnTangle in front: keys
+        // typed until the app is back are held and replayed, guard on or not.
+        var settings = InputSourceGuard.Settings.current()
+        if selection.nudgeLed { settings = settings.holdingThroughNudge() }
         let strategy = inputGuard.arm(for: selection, at: timestamp, settings: settings)
+        if selection.nudgeLed { DispatchQueue.main.async { InputSourceFocusNudge.release(to: selection.id) } }
         stateLock.withLock { switchedAtNanoseconds = started }
         Self.log.notice("trigger \(trigger.rawValue, privacy: .public) -> \(selection.id, privacy: .public) selected in \(selectMilliseconds, privacy: .public) ms; guard \(strategy?.rawValue ?? "off", privacy: .public) \(settings.milliseconds, privacy: .public) ms")
     }

@@ -548,6 +548,8 @@ if (( TEST )); then
         Sources/Vorssaint/Services/InstantInputSwitch/FocusLanguageBadgeSupport.swift
         Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuardSupport.swift
         Sources/Vorssaint/Services/InputSourceGuard/InputSourceGuard.swift
+        Sources/Vorssaint/Services/InputSourceGuard/InputSourceFocusNudge.swift
+        Sources/Vorssaint/Services/ActivationHandoff.swift
         Sources/Vorssaint/Core/InstantInputSwitchStrings.swift
         Sources/Vorssaint/Core/InputSourceSelection.swift
         Sources/Vorssaint/Services/SessionActivity.swift

@@ -24,6 +24,10 @@ enum InputSourceSwitcher {
         let keyboardType: UInt32
         /// The source that was selected before this switch.
         var previousID: String? = nil
+        /// Whether a focus nudge brought UnTangle in front before the switch
+        /// (it left an input method); the owner hands the activation back
+        /// with `InputSourceFocusNudge.release(to:)`.
+        var nudgeLed = false
     }
 
     /// This process's last switch, to see through a stale report of the
@@ -45,7 +49,9 @@ enum InputSourceSwitcher {
     /// thread waits for it there: hopping asynchronously would let the key
     /// already in flight reach the app first. Selecting directly also lets an
     /// input method commit or cancel on its own, the way the Input menu does.
-    static func select(_ order: Order) -> Selection? {
+    /// With `nudging`, a switch that leaves an input method is led by the
+    /// focus nudge; without it the lookup is skipped while the tap waits.
+    static func select(_ order: Order, nudging: Bool = false) -> Selection? {
         let select = { () -> Selection? in
             let sources = InputSourceSelection.selectableInputSources()
             let ids = sources.compactMap {
@@ -67,9 +73,18 @@ enum InputSourceSwitcher {
             guard let nextID = target,
                   let next = sources.first(where: {
                       InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID) == nextID
-                  }),
-                  TISSelectInputSource(next) == noErr
+                  })
             else { return nil }
+            let nudgeLed = nudging && sources.contains {
+                InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceID) == currentID
+                    && InputSourceSelection.inputSourceString($0, property: kTISPropertyInputSourceType)
+                        != kTISTypeKeyboardLayout as String
+            }
+            if nudgeLed { InputSourceFocusNudge.takeFocusBeforeSwitch() }
+            guard TISSelectInputSource(next) == noErr else {
+                if nudgeLed { InputSourceFocusNudge.release(to: nil) }
+                return nil
+            }
             lastSwitch = InputSourceGuardSupport.LastSwitch(reported: reported, selected: nextID, at: now)
             let isLayout = InputSourceSelection.inputSourceString(next, property: kTISPropertyInputSourceType)
                 == kTISTypeKeyboardLayout as String
@@ -83,7 +98,8 @@ enum InputSourceSwitcher {
                                 ?? nextID,
                              layout: layout,
                              keyboardType: UInt32(LMGetKbdType()),
-                             previousID: currentID)
+                             previousID: currentID,
+                             nudgeLed: nudgeLed)
         }
         return Thread.isMainThread ? select() : DispatchQueue.main.sync(execute: select)
     }
@@ -201,6 +217,23 @@ final class InputSourceGuard {
         var enabled = true
         var strategy = InputSourceGuardStrategy.rewrite
         var milliseconds = InputSourceGuardSupport.defaultMilliseconds
+        /// Whether a shortcut is held like a typed key instead of ending the
+        /// window. Only while a focus nudge has UnTangle in front: a shortcut
+        /// let out then would reach UnTangle, not the app.
+        var holdsShortcuts = false
+
+        /// The shortest a replay window may be after a focus nudge: long
+        /// enough for the app to be back in front first.
+        static let nudgeMilliseconds = 300
+
+        /// What the guard does after a focus nudge: keys typed while UnTangle
+        /// is still in front would reach it and be lost, so they are held,
+        /// shortcuts too and whatever the settings, and replayed once the app
+        /// is back.
+        func holdingThroughNudge() -> Settings {
+            Settings(enabled: true, strategy: .replay, milliseconds: max(milliseconds, Self.nudgeMilliseconds),
+                     holdsShortcuts: true)
+        }
 
         static func current(_ defaults: UserDefaults = .standard) -> Settings {
             Settings(enabled: defaults.bool(forKey: DefaultsKey.inputSourceGuardEnabled),
@@ -254,6 +287,8 @@ final class InputSourceGuard {
     private var rewriteWindow: RewriteWindow?
     /// Deadline of the open replay window, if one is open.
     private var replayDeadline: UInt64?
+    /// Whether the open replay window holds shortcuts too (`Settings.holdsShortcuts`).
+    private var replayHoldsShortcuts = false
     /// Held events, in arrival order.
     private var replayQueue: [HeldEvent] = []
     /// Replayed copies posted but not yet seen coming back through the tap.
@@ -289,6 +324,7 @@ final class InputSourceGuard {
             targetKeyboardType = selection.keyboardType
             rewriteWindow = settings.enabled && !replays ? RewriteWindow(deadline: deadline) : nil
             replayDeadline = settings.enabled && replays ? deadline : nil
+            replayHoldsShortcuts = settings.holdsShortcuts
             generation &+= 1
             return generation
         }
@@ -333,9 +369,11 @@ final class InputSourceGuard {
             return !holdsClicks || !hold(event, timestamp: timestamp, endsWindow: false, stampable: false)
         case .keyDown:
             // A shortcut goes out behind the held keys and ends the window,
-            // so ⌘ is not released before its own key arrives.
+            // so ⌘ is not released before its own key arrives; while a focus
+            // nudge has UnTangle in front it waits with them instead.
             let isTyping = InputSourceGuardSupport.isTyping(flags: event.flags)
-            if hold(event, timestamp: timestamp, endsWindow: !isTyping, stampable: rewriteAllowed && isTyping) {
+            let endsWindow = !isTyping && !lock.withLock { replayHoldsShortcuts }
+            if hold(event, timestamp: timestamp, endsWindow: endsWindow, stampable: rewriteAllowed && isTyping) {
                 return false
             }
             if rewriteAllowed && isTyping { rewrite(event, timestamp: timestamp) }

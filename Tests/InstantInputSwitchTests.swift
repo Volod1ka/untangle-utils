@@ -18,6 +18,8 @@ enum InstantInputSwitchTests {
         deadKeys(suite)
         quickControlSpace(suite)
         focusBadge(suite)
+        focusNudge(suite)
+        superKeyPress(suite)
     }
 
     // MARK: - Triggers
@@ -127,7 +129,7 @@ enum InstantInputSwitchTests {
                 && Support.translationModifierState(flags: .maskAlternate) == 8
                 && Support.translationModifierState(flags: .maskCommand) == 0,
                "UCKeyTranslate gets Shift, Caps Lock and Option in the shifted Carbon bits")
-        // Control-Space goes back to the previous source, like macOS.
+        // The Super key's "previous" goes back to the source used last, like macOS.
         suite.expect(Support.recording("uk", in: ["en", "uk", "de"]) == ["uk", "en", "de"]
                 && Support.recording("fr", in: []) == ["fr"]
                 && Support.recording("x", in: (0..<20).map(String.init)).count == Support.recentLimit,
@@ -251,6 +253,40 @@ enum InstantInputSwitchTests {
                        "\(language.rawValue) is translated, not the English text")
             }
         }
+    }
+
+    // MARK: - Super key press seen ahead of the Super key
+
+    private static func superKeyPress(_ suite: TestSuite) {
+        var press = InstantInputSwitchSupport.SuperKeyPress()
+        press.note(keyCode: 0, down: true)
+        suite.expect(!press.isDown, "an ordinary key is not the Super key")
+        press.note(keyCode: SuperKeySupport.triggerKeyCode, down: true)
+        press.note(keyCode: 40, down: true)
+        press.note(keyCode: 40, down: false)
+        suite.expect(press.isDown, "the Super key stays down across the chord's own keys")
+        press.note(keyCode: SuperKeySupport.triggerKeyCode, down: false)
+        suite.expect(!press.isDown, "and is up once its own key is released")
+        press.note(keyCode: SuperKeySupport.triggerKeyCode, down: true)
+        press.reset()
+        suite.expect(!press.isDown, "a press whose release was missed is forgotten on reset")
+    }
+
+    // MARK: - Focus nudge
+
+    private static func focusNudge(_ suite: TestSuite) {
+        typealias Settings = InputSourceGuard.Settings
+        let off = Settings(enabled: false, strategy: .rewrite, milliseconds: 60)
+        suite.expect(off.holdingThroughNudge()
+                == Settings(enabled: true, strategy: .replay, milliseconds: Settings.nudgeMilliseconds,
+                            holdsShortcuts: true),
+               "while a nudge has UnTangle in front, keys and shortcuts are held even with the guard off, long enough to outlast it")
+        let long = Settings(enabled: true, strategy: .rewrite, milliseconds: 400)
+        suite.expect(long.holdingThroughNudge()
+                == Settings(enabled: true, strategy: .replay, milliseconds: 400, holdsShortcuts: true),
+               "a longer window of the person's own is kept, as a hold")
+        suite.expect(!Settings().holdsShortcuts && !long.holdsShortcuts,
+               "outside a nudge a shortcut still ends the window")
     }
 
     // MARK: - Focus badge
